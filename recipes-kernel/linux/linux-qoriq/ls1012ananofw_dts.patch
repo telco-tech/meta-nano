@@ -1,0 +1,179 @@
+diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
+new file mode 100644
+index 0000000..6a84a2f
+--- /dev/null
++++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
+@@ -0,0 +1,173 @@
++/*
++ * Device Tree file for INCOstartec NanoFW Board.
++ *
++ * Copyright 2016 Freescale Semiconductor, Inc.
++ * Copyright 2018 Telco-Tech GmbH
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPLv2 or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This library is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This library is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++/dts-v1/;
++
++#include "fsl-ls1012a.dtsi"
++
++/ {
++	model = "LS1012A NanoFW Board";
++	compatible = "fsl,ls1012a-nanofw", "fsl,ls1012a";
++
++	aliases {
++		ethernet0 = &pfe_mac0;
++		ethernet1 = &pfe_mac1;
++	};
++
++	/*
++	 * is this an bug on fsl-ls1012a.dtsi ?
++	 * most of the devices use sysclk (clocks = <&clockgen 4 0>)
++	 * but there is an divisor 1/4
++	 *  - see reference manual "Clock subsystem block diagram - IP modules"
++	 */
++	qsysclk: qsysclk {
++		compatible = "fixed-factor-clock";
++		clocks = <&clockgen 4 0>;
++		#clock-cells = <0>;
++		clock-div = <4>;
++		clock-mult = <1>;
++	};
++};
++
++&duart0 {
++	clocks = <&qsysclk>;
++	status = "okay";
++	/* qsysclk? */
++};
++
++&i2c0 {
++	clocks = <&qsysclk>;
++	clock-frequency = <400000>;
++	status = "okay";
++
++	ksz9897: ksz9897@5f {
++		compatible = "microchip,i2c-ksz9897", "microchip,ksz9897";
++		reg = <0x5f>;
++		status = "okay";
++	};
++};
++
++&qspi {
++	num-cs = <2>;
++	bus-num = <0>;
++	status = "okay";
++
++	qflash0: s25fs512s@0 {
++		compatible = "spansion,m25p80";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		spi-max-frequency = <20000000>;
++		m25p,fast-read;
++		reg = <0>;
++	};
++};
++
++&sata {
++	clocks = <&qsysclk>;
++	status = "okay";
++};
++
++&esdhc0 {
++	sd-uhs-sdr25;
++	sd-uhs-sdr12;
++	voltage-ranges = <3300 3300>;
++	status = "okay";
++};
++
++&esdhc1 {
++	voltage-ranges = <1800 1800>;
++	mmc-hs200-1_8v;
++	non-removable;
++	status = "okay";
++};
++
++&pfe {
++	status = "okay";
++	#address-cells = <1>;
++	#size-cells = <0>;
++	clocks = <&qsysclk>;
++
++	ethernet@0 {
++		compatible = "fsl,pfe-gemac-port";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <0x0>;	/* GEM_ID */
++		fsl,gemac-bus-id = <0x0>;	/* BUS_ID */
++		fsl,gemac-phy-id = <0x2>;	/* PHY_ID */
++		fsl,mdio-mux-val = <0x0>;
++		phy-mode = "sgmii";
++		fsl,pfe-phy-if-flags = <0x0>;
++
++		mdio@0 {
++			reg = <0x1>; /* enabled/disabled */
++		};
++	};
++
++	ethernet@1 {
++		compatible = "fsl,pfe-gemac-port";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <0x1>;	/* GEM_ID */
++		fsl,gemac-bus-id = < 0x1 >;	/* BUS_ID */
++		fsl,gemac-phy-id = < 0x0 >;	/* PHY_ID */
++		fsl,mdio-mux-val = <0x0>;
++		phy-mode = "sgmii";
++		fsl,pfe-phy-if-flags = <0x0>;
++
++		mdio@0 {
++			reg = <0x1>; /* enabled/disabled */
++		};
++
++		ksz9897@0 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <0x0>;		/* mdio bus id */
++
++			phy0: ethernet-phy@0 {
++				reg = <0x01>;	/* phy id (port 0 = phy id 1) */
++				phy-mode = "gmii";
++			};
++ 		};
++	};
++};

@@ -1,0 +1,13 @@
+diff --git a/drivers/staging/fsl_ppfe/pfe_eth.h b/drivers/staging/fsl_ppfe/pfe_eth.h
+index 9beaddc..3a3bbac 100644
+--- a/drivers/staging/fsl_ppfe/pfe_eth.h
++++ b/drivers/staging/fsl_ppfe/pfe_eth.h
+@@ -175,7 +175,7 @@ struct  pfe_eth_priv_s {
+ };
+ 
+ struct pfe_eth {
+-	struct pfe_eth_priv_s *eth_priv[3];
++	struct pfe_eth_priv_s *eth_priv[NUM_GEMAC_SUPPORT];
+ };
+ 
+ int pfe_eth_init(struct pfe *pfe);

@@ -1,0 +1,35 @@
+#
+# iperf3 does stop the package engine
+#
+# start iperf3 -s on ls1012a and iperf3 -c <ip> -b 1G -t 30 on other machine
+# ppfe will hang after some seconds
+#
+# increase the rx desc will work
+#
+# from iperf3:
+[ ID] Interval           Transfer     Bitrate
+[  5]   0.00-1.00   sec  19.3 MBytes   162 Mbits/sec
+[  5]   1.00-2.00   sec  0.00 Bytes  0.00 bits/sec       <---- hang
+....
+#
+# with 2048 buffers
+#
+[ ID] Interval           Transfer     Bitrate         Retr
+....
+[  5]   0.00-3600.00 sec   294 GBytes   702 Mbits/sec    0             sender
+[  5]   0.00-3600.05 sec   294 GBytes   702 Mbits/sec                  receiver
+#
+
+diff --git a/drivers/staging/fsl_ppfe/pfe_hif.h b/drivers/staging/fsl_ppfe/pfe_hif.h
+index 6e36f0c..ff21bed 100644
+--- a/drivers/staging/fsl_ppfe/pfe_hif.h
++++ b/drivers/staging/fsl_ppfe/pfe_hif.h
+@@ -47,7 +47,7 @@ enum {
+  * HIF_TX_DESC_NT value should be always greter than 4,
+  * Otherwise HIF_TX_POLL_MARK will become zero.
+  */
+-#define HIF_RX_DESC_NT		256
++#define HIF_RX_DESC_NT		2048
+ #define HIF_TX_DESC_NT		2048
+ 
+ #define HIF_FIRST_BUFFER	BIT(0)

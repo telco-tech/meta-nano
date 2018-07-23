@@ -1,0 +1,277 @@
+diff --git a/drivers/net/ethernet/micrel/Kconfig b/drivers/net/ethernet/micrel/Kconfig
+index b7e2f49..5ec5618 100644
+--- a/drivers/net/ethernet/micrel/Kconfig
++++ b/drivers/net/ethernet/micrel/Kconfig
+@@ -61,4 +61,6 @@ config KSZ884X_PCI
+ 	  To compile this driver as a module, choose M here. The module
+ 	  will be called ksz884x.
+ 
++source "drivers/net/ethernet/micrel/ksz9897/Kconfig"
++
+ endif # NET_VENDOR_MICREL
+diff --git a/drivers/net/ethernet/micrel/Makefile b/drivers/net/ethernet/micrel/Makefile
+index c83e4bc..97e4c13 100644
+--- a/drivers/net/ethernet/micrel/Makefile
++++ b/drivers/net/ethernet/micrel/Makefile
+@@ -7,3 +7,4 @@ obj-$(CONFIG_KS8842) += ks8842.o
+ obj-$(CONFIG_KS8851) += ks8851.o
+ obj-$(CONFIG_KS8851_MLL) += ks8851_mll.o
+ obj-$(CONFIG_KSZ884X_PCI) += ksz884x.o
++obj-$(CONFIG_HAVE_KSZ9897) += ksz9897/
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c b/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
+index d4bd471..79228a3 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
+@@ -647,12 +647,12 @@ static void assert_buf(const char *name, int i, size_t func_size, u32 *buf,
+ 	int assert = false;
+ 
+ 	if ((i + 1) > func_size / sizeof(void *)) {
+-		printk(KERN_INFO "  [%s func] %u %u\n",
++		printk(KERN_INFO "  [%s func] %u %zu\n",
+ 			name, i, func_size / sizeof(void *));
+ 		assert = true;
+ 	}
+ 	if (data > buf + buf_size / sizeof(u32)) {
+-		printk(KERN_INFO "  [%s data] %u\n",
++		printk(KERN_INFO "  [%s data] %zu\n",
+ 			name, (data - buf));
+ 		assert = true;
+ 	}
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
+index ed8a0eb..5f2871c 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
+@@ -1379,6 +1379,7 @@ static u32 ptp_get_dev_port(struct ptp_info *ptp, int start, uint port)
+ 	return port;
+ }  /* ptp_get_dev_port */
+ 
++#if 0
+ /**
+  * ptp_get_net_port - Convert physical port to virtual port
+  * @ptp:	The PTP instance.
+@@ -1399,6 +1400,7 @@ static u32 ptp_get_net_port(struct ptp_info *ptp, int start, uint port)
+ 		++port;
+ 	return port - start;
+ }  /* ptp_get_net_port */
++#endif
+ 
+ static void add_tx_delay(struct ptp_ts *ts, int delay, u32 cur_sec)
+ {
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h b/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
+index ada7acd..99478a6 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
+@@ -87,7 +87,6 @@ struct spi_hw_priv {
+  * @intr_mask:
+  * @pdev:		Point to platform device.
+  * @bus:		Point to MDIO bus.
+- * @bus_irqs:
+  * @name:
+  * @phydev:		Point to active PHY device.
+  * @sw:			Virtual switch structure.
+@@ -127,7 +126,6 @@ struct sw_priv {
+ 
+ 	struct platform_device *pdev;
+ 	struct mii_bus *bus;
+-	int bus_irqs[PHY_MAX_ADDR];
+ 	char name[40];
+ 	struct phy_device *phydev;
+ 
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+index a566135..ec68241 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+@@ -4613,12 +4613,12 @@ static void port_cfg_power(struct ksz_sw *sw, uint p, bool set)
+ 		port_w16(sw, p, REG_PORT_PHY_CTRL, cfg->phy_ctrl);
+ 		port_r16(sw, p, REG_PORT_PHY_CTRL, &ctrl);
+ 		port_r16(sw, p, REG_PORT_PHY_AUTO_NEGOTIATION, &ctrl);
+-		if (ctrl != cfg->phy_adv);
++		if (ctrl != cfg->phy_adv)
+ 			port_w16(sw, p, REG_PORT_PHY_AUTO_NEGOTIATION,
+ 				cfg->phy_adv);
+ 		if (sw->features & GIGABIT_SUPPORT) {
+ 			port_r16(sw, p, REG_PORT_PHY_1000_CTRL, &ctrl);
+-			if (ctrl != cfg->phy_adv_g);
++			if (ctrl != cfg->phy_adv_g)
+ 				port_w16(sw, p, REG_PORT_PHY_1000_CTRL,
+ 					cfg->phy_adv_g);
+ 		}
+@@ -8821,7 +8821,7 @@ static void sw_setup(struct ksz_sw *sw)
+ 	port = 6;
+ 	if (PHY_INTERFACE_MODE_SGMII == sw->port_info[port].interface &&
+ 	    sw->port_info[port].phy) {
+-		port_sgmii_setup(sw, port, false, 2, 1);
++		port_sgmii_setup(sw, port, true, 2, 1);
+ 		sw->info->port_cfg[port].intr_mask |= PORT_SGMII_INT;
+ 	}
+ 
+@@ -16085,7 +16085,7 @@ static int sw_setup_dev(struct ksz_sw *sw, struct net_device *dev,
+ 		struct sw_priv *hw_priv = container_of(sw, struct sw_priv, sw);
+ 
+ 		if (hw_priv->bus)
+-			phydev = hw_priv->bus->phy_map[phy_id];
++			phydev = mdiobus_get_phy(hw_priv->bus, phy_id);
+ 		else
+ 			phydev = &sw->phy_map[phy_id];
+ 		priv = phydev->priv;
+@@ -16150,7 +16150,6 @@ static int netdev_chk_stopped(struct net_device *dev)
+ 
+ static void netdev_start_queue(struct net_device *dev)
+ {
+-	dev->trans_start = jiffies;
+ 	netif_start_queue(dev);
+ }
+ 
+@@ -16920,7 +16919,6 @@ static struct phy_driver kszsw_phy_driver[] = {
+ 	.config_init	= kszphy_config_init,
+ 	.config_aneg	= genphy_config_aneg,
+ 	.read_status	= genphy_read_status,
+-	.driver		= { .owner = THIS_MODULE, },
+ }, {
+ 	.phy_id		= PHY_ID_KSZ889X_SW,
+ 	.phy_id_mask	= 0x00ffffff,
+@@ -16930,7 +16928,6 @@ static struct phy_driver kszsw_phy_driver[] = {
+ 	.config_init	= kszphy_config_init,
+ 	.config_aneg	= genphy_config_aneg,
+ 	.read_status	= genphy_read_status,
+-	.driver		= { .owner = THIS_MODULE, },
+ }
+ };
+ 
+@@ -17170,6 +17167,7 @@ static int ksz_mii_init(struct sw_priv *ks)
+ {
+ 	struct platform_device *pdev;
+ 	struct mii_bus *bus;
++	struct phy_device *phydev;
+ 	int err;
+ 	int i;
+ 
+@@ -17186,7 +17184,7 @@ static int ksz_mii_init(struct sw_priv *ks)
+ 
+ 	if (!driver_installed) {
+ 		err = phy_drivers_register(kszsw_phy_driver,
+-			ARRAY_SIZE(kszsw_phy_driver));
++			ARRAY_SIZE(kszsw_phy_driver), THIS_MODULE);
+ 		if (err)
+ 			goto mii_init_free_mii_bus;
+ 		driver_installed = true;
+@@ -17199,7 +17197,6 @@ static int ksz_mii_init(struct sw_priv *ks)
+ 	bus->parent = &pdev->dev;
+ 	bus->phy_mask = ~((1 << (ks->sw.mib_port_cnt + 1)) - 1);
+ 	bus->priv = ks;
+-	bus->irq = ks->bus_irqs;
+ 
+ 	for (i = 0; i < PHY_MAX_ADDR; i++)
+ 		bus->irq[i] = ks->irq;
+@@ -17209,7 +17206,7 @@ static int ksz_mii_init(struct sw_priv *ks)
+ 	if (err < 0)
+ 		goto mii_init_free_mii_bus;
+ 
+-	if (!bus->phy_map[0]) {
++	if (mdiobus_get_phy(bus, 0) == NULL) {
+ 		printk(KERN_WARNING "No PHY detected\n");
+ 		mdiobus_unregister(bus);
+ 		err = -ENODEV;
+@@ -17217,23 +17214,25 @@ static int ksz_mii_init(struct sw_priv *ks)
+ 	}
+ 
+ 	for (i = 0; i < PHY_MAX_ADDR; i++)
+-		if (bus->phy_map[i]) {
+-			err = sw_init_phy_priv(ks, bus->phy_map[i], i);
++		if ((phydev = mdiobus_get_phy(bus, i))) {
++			err = sw_init_phy_priv(ks, phydev, i);
+ 			if (err)
+ 				goto mii_init_free_mii_bus;
+ 		}
+ 
+ 	ks->bus = bus;
+ 	ks->pdev = pdev;
+-	ks->phydev = bus->phy_map[0];
++	ks->phydev = mdiobus_get_phy(bus, 0);
+ 	sw_init_phydev(&ks->sw, ks->phydev);
+ 
+ 	return 0;
+ 
+ mii_init_free_mii_bus:
+-	for (i = 0; i < PHY_MAX_ADDR; i++)
+-		if (bus->phy_map[i])
+-			kfree(bus->phy_map[i]->priv);
++	for (i = 0; i < PHY_MAX_ADDR; i++) {
++		if ((phydev = mdiobus_get_phy(bus, i)))
++			kfree(phydev->priv);
++	}
++
+ 	if (driver_installed) {
+ 		phy_drivers_unregister(kszsw_phy_driver,
+ 			ARRAY_SIZE(kszsw_phy_driver));
+@@ -17252,14 +17251,16 @@ static void ksz_mii_exit(struct sw_priv *ks)
+ 	int i;
+ 	struct platform_device *pdev = ks->pdev;
+ 	struct mii_bus *bus = ks->bus;
++	struct phy_device *phydev;
+ 
+ 	for (i = 0; i < PHY_MAX_ADDR; i++)
+-		if (bus->phy_map[i]) {
++		if ((phydev = mdiobus_get_phy(bus, i))) {
+ 			struct ksz_port *port;
+ 
+ 			port = &ks->ports[i];
+ 			flush_work(&port->link_update);
+-			kfree(bus->phy_map[i]->priv);
++
++			kfree(phydev->priv);
+ 		}
+ 	mdiobus_unregister(bus);
+ 	if (driver_installed) {
+@@ -17521,7 +17522,7 @@ static void ksz9897_dev_monitor(unsigned long ptr)
+ 	int i;
+ 
+ 	for (i = 0; i <= TOTAL_PORT_NUM; i++) {
+-		phydev = hw_priv->bus->phy_map[i];
++		phydev = mdiobus_get_phy(hw_priv->bus, i);
+ 		if (!phydev)
+ 			continue;
+ 		priv = phydev->priv;
+@@ -18127,7 +18128,7 @@ info->tx_rate / TX_RATE_UNIT, info->duplex);
+ 
+ 	if (ks->bus) {
+ 		for (i = 0; i <= sw->mib_port_cnt; i++)
+-			sw->phy[i] = ks->bus->phy_map[i];
++			sw->phy[i] = mdiobus_get_phy(ks->bus, i);
+ 	} else {
+ 		for (i = 0; i <= sw->mib_port_cnt; i++)
+ 			sw->phy[i] = &sw->phy_map[i];
+diff --git a/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c b/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
+index 9533f2c..a9aa75d 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
++++ b/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
+@@ -127,7 +127,8 @@ static int ptp_adjtime(struct ptp_clock_info *clock, s64 delta)
+ 	return err;
+ }
+ 
+-static int ptp_gettime(struct ptp_clock_info *clock, struct timespec *ts)
++
++static int ptp_gettime(struct ptp_clock_info *clock, struct timespec64 *ts)
+ {
+ 	struct ptp_clk_options clk_opt;
+ 	int output;
+@@ -148,7 +149,7 @@ static int ptp_gettime(struct ptp_clock_info *clock, struct timespec *ts)
+ 	return 0;
+ }
+ 
+-static int ptp_settime(struct ptp_clock_info *clock, const struct timespec *ts)
++static int ptp_settime(struct ptp_clock_info *clock, const struct timespec64 *ts)
+ {
+ 	struct ptp_clk_options clk_opt;
+ 	int output;
+@@ -211,8 +212,8 @@ static struct ptp_clock_info ptp_caps = {
+ 	.pps		= 1,
+ 	.adjfreq	= ptp_adjfreq,
+ 	.adjtime	= ptp_adjtime,
+-	.gettime	= ptp_gettime,
+-	.settime	= ptp_settime,
++	.gettime64	= ptp_gettime,
++	.settime64	= ptp_settime,
+ 	.enable		= ptp_enable,
+ };
+ 

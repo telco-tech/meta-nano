@@ -1,0 +1,14 @@
+diff --git a/lib/efi_loader/efi_disk.c b/lib/efi_loader/efi_disk.c
+index 39e602a..205d09c 100644
+--- a/lib/efi_loader/efi_disk.c
++++ b/lib/efi_loader/efi_disk.c
+@@ -330,6 +330,9 @@ int efi_disk_register(void)
+ 			if (desc->type == DEV_TYPE_UNKNOWN)
+ 				continue;
+ 
++			if (cur_drvr->select_hwpart != NULL)
++				cur_drvr->select_hwpart(desc, 0);
++
+ 			snprintf(devname, sizeof(devname), "%s%d",
+ 				 if_typename, i);
+ 			efi_disk_add_dev(devname, if_typename, desc, i, 0);

@@ -1,0 +1,70 @@
+#!/bin/sh
+
+TMPPART=$(mktemp)
+TMPMNT=$(mktemp -d)
+GRUBARGS="--no-floppy --no-bootsector --efi-directory=${TMPMNT}"
+GRUBMODULES="normal ext2 linux loadenv test"
+
+BOOTDEV=$(find /dev -name mmcblk*boot0)
+
+trap do_cleanup EXIT
+
+do_cleanup() {
+	umount ${TMPMNT} &>/dev/null
+	rm -rf ${TMPMNT} ${TMPPART}
+	echo 1 > /sys/block/${BOOTDEV##*/}/force_ro
+}
+
+if [ -z "${BOOTDEV}" ]; then
+	echo "failed to find emmc boot device (ie. mmcblk0boot0)"
+	exit 1
+fi
+
+while [ -n "${1}" ]; do
+	case ${1} in
+	--dtb-file*)
+		DTB_FILE=${1#--dtb-file=}
+		;;
+	*)
+		GRUBARGS="${GRUBARGS} ${1}"
+		;;
+	esac
+
+	shift
+done
+
+if [ -z "${DTB_FILE}" ]; then
+	echo "missing devicetree binary file (--dtb-file=...)"
+	exit 2
+fi
+
+dd if=/dev/zero of=${TMPPART} bs=1M count=10 &>/dev/null
+
+mkfs.fat ${TMPPART} &>/dev/null || exit 3
+
+mount ${TMPPART} ${TMPMNT} || exit 4
+
+grub-install ${GRUBARGS} --install-modules="${GRUBMODULES}" || exit 5
+
+echo 0 > /sys/block/${BOOTDEV##*/}/force_ro
+
+# NOTE all ..._SIZE and ..._START are in block size (512b)
+
+GRUBEFI_SIZE=$(stat ${TMPMNT}/EFI/grub/grubaa64.efi | sed -n '/Blocks:/{s/.*Blocks: \([0-9]*\).*/\1/;p}')
+DTB_SIZE=$(stat ${DTB_FILE} | sed -n '/Blocks:/{s/.*Blocks: \([0-9]*\).*/\1/;p}')
+
+GRUBEFI_START=1
+DTB_START=$((GRUBEFI_START + ${GRUBEFI_SIZE}))
+
+printf "grubefi_start=%x\ngrubefi_size=%x\ndtb_start=%x\ndtb_size=%x" ${GRUBEFI_START} ${GRUBEFI_SIZE} $((GRUBEFI_START + ${GRUBEFI_SIZE})) ${DTB_SIZE} > ${BOOTDEV}
+
+echo "write grubaa64.efi to emmc ..."
+dd if=${TMPMNT}/EFI/grub/grubaa64.efi of=${BOOTDEV} bs=1b seek=${GRUBEFI_START} &>/dev/null || exit 6
+
+echo "write devicetree to emmc ..."
+dd if=${DTB_FILE} of=${BOOTDEV} bs=1b seek=${DTB_START} &>/dev/null || exit 7
+
+echo "grub-install-emmc success"
+
+exit 0
+
