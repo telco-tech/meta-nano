@@ -8,13 +8,16 @@ IMAGE_FEATURES = "debug-tweaks"
 
 PACKAGE_INSTALL = "\
 	packagegroup-core-boot \
-	dropbear \
-	${VIRTUAL-RUNTIME_base-utils} \
+	packagegroup-core-ssh-dropbear \
 	udev \
-	base-passwd \
+	\
 	${ROOTFS_BOOTSTRAP_INSTALL} \
 	kernel-modules \
 	ppfe-firmware \
+	\
+	ethtool \
+	iperf3 \
+	tcpdump \
 "
 
 inherit core-image

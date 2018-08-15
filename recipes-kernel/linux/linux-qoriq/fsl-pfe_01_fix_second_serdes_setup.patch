@@ -1,25 +1,7 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_eth.c b/drivers/staging/fsl_ppfe/pfe_eth.c
-index 02cd7c5..7ca1a48 100644
+index 02cd7c5..fe3c1c2 100644
 --- a/drivers/staging/fsl_ppfe/pfe_eth.c
 +++ b/drivers/staging/fsl_ppfe/pfe_eth.c
-@@ -1142,7 +1142,7 @@ static int pfe_eth_start(struct pfe_eth_priv_s *priv)
-  */
- static void ls1012a_configure_serdes(struct net_device *ndev)
- {
--	struct pfe_eth_priv_s *priv = pfe->eth.eth_priv[0];
-+	struct pfe_eth_priv_s *priv = netdev_priv(ndev);
- 	int sgmii_2500 = 0;
- 	struct mii_bus *bus = priv->mii_bus;
- 
-@@ -1188,7 +1188,7 @@ static int pfe_phy_init(struct net_device *ndev)
- 	priv->oldspeed = 0;
- 	priv->oldduplex = -1;
- 
--	snprintf(bus_id, MII_BUS_ID_SIZE, "ls1012a-%d", 0);
-+	snprintf(bus_id, MII_BUS_ID_SIZE, "ls1012a-%d", priv->einfo->bus_id);
- 	snprintf(phy_id, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
- 		 priv->einfo->phy_id);
- 
 @@ -2277,7 +2277,7 @@ static int pfe_eth_init_one(struct pfe *pfe, int id)
  	/* Set the info in the priv to the current info */
  	priv->einfo = &einfo[id];

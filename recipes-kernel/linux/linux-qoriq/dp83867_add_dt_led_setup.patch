@@ -1,0 +1,95 @@
+diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
+index 629efbd..337c035 100644
+--- a/drivers/net/phy/dp83867.c
++++ b/drivers/net/phy/dp83867.c
+@@ -28,6 +28,7 @@
+ #define MII_DP83867_PHYCTRL	0x10
+ #define MII_DP83867_MICR	0x12
+ #define MII_DP83867_ISR		0x13
++#define MII_DP83867_LEDCR1	0x18
+ #define DP83867_CTRL		0x1f
+ 
+ /* Extended Registers */
+@@ -66,6 +67,11 @@ struct dp83867_private {
+ 	int rx_id_delay;
+ 	int tx_id_delay;
+ 	int fifo_depth;
++	uint8_t led_0_source;
++	uint8_t led_1_source;
++	uint8_t led_2_source;
++	uint8_t led_gpio_source;
++	uint32_t led_mask;
+ };
+ 
+ static int dp83867_ack_interrupt(struct phy_device *phydev)
+@@ -110,6 +116,29 @@ static int dp83867_of_init(struct phy_device *phydev)
+ 	if (!of_node)
+ 		return -ENODEV;
+ 
++	dp83867->led_mask = ~0;
++
++	ret = of_property_read_u8(of_node, "ti,led-0-source",
++				   &dp83867->led_0_source);
++	if (ret)
++		dp83867->led_mask &= ~0x000f;
++
++	ret = of_property_read_u8(of_node, "ti,led-1-source",
++				   &dp83867->led_1_source);
++	if (ret)
++		dp83867->led_mask &= ~0x00f0;
++
++	ret = of_property_read_u8(of_node, "ti,led-2-source",
++				   &dp83867->led_2_source);
++	if (ret)
++		dp83867->led_mask &= ~0x0f00;
++
++	ret = of_property_read_u8(of_node, "ti,led-gpio-source",
++				   &dp83867->led_gpio_source);
++	if (ret)
++		dp83867->led_mask &= ~0xf000;
++
++
+ 	ret = of_property_read_u32(of_node, "ti,rx-internal-delay",
+ 				   &dp83867->rx_id_delay);
+ 	if (ret)
+@@ -185,6 +214,16 @@ static int dp83867_config_init(struct phy_device *phydev)
+ 				       DP83867_DEVADDR, delay);
+ 	}
+ 
++	if (dp83867->led_mask) {
++		ret = dp83867->led_0_source | (dp83867->led_1_source << 4)
++					    | (dp83867->led_2_source << 8)
++					    | (dp83867->led_gpio_source << 12);
++
++		val = phy_read(phydev, MII_DP83867_LEDCR1);
++		val = (val & ~dp83867->led_mask) | (ret & dp83867->led_mask);
++		phy_write(phydev, MII_DP83867_LEDCR1, val);
++	}
++
+ 	return 0;
+ }
+ 
+diff --git a/include/dt-bindings/net/ti-dp83867.h b/include/dt-bindings/net/ti-dp83867.h
+index 172744a..2781213 100644
+--- a/include/dt-bindings/net/ti-dp83867.h
++++ b/include/dt-bindings/net/ti-dp83867.h
+@@ -42,4 +42,19 @@
+ #define	DP83867_RGMIIDCTL_3_75_NS	0xe
+ #define	DP83867_RGMIIDCTL_4_00_NS	0xf
+ 
++#define DP83867_LEDCR_LINK_ESTABLISHED				/bits/ 8 <0x00>
++#define DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY		/bits/ 8 <0x01>
++#define DP83867_LEDCR_TRANSMIT_ACTIVITY				/bits/ 8 <0x02>
++#define DP83867_LEDCR_RECEIVE_ACTIVITY				/bits/ 8 <0x03>
++#define DP83867_LEDCR_COLLISION_DETECTED			/bits/ 8 <0x04>
++#define DP83867_LEDCR_1000BT_LINK_ESTABLISHED			/bits/ 8 <0x05>
++#define DP83867_LEDCR_100BTX_LINK_ESTABLISHED			/bits/ 8 <0x06>
++#define DP83867_LEDCR_10BT_LINK_ESTABLISHED			/bits/ 8 <0x07>
++#define DP83867_LEDCR_10_100BT_LINK_ESTABLISHED			/bits/ 8 <0x08>
++#define DP83867_LEDCR_100_1000BT_LINK_ESTABLISHED		/bits/ 8 <0x09>
++#define DP83867_LEDCR_FULL_DUPLEX				/bits/ 8 <0x0a>
++#define DP83867_LEDCR_LINK_ESTABLISHED_BLINK_FOR_ACTIVITY	/bits/ 8 <0x0b>
++#define DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ERROR			/bits/ 8 <0x0d>
++#define DP83867_LEDCR_RECEIVE_ERROR				/bits/ 8 <0x0e>
++
+ #endif

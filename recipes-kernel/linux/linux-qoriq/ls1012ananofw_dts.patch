@@ -1,9 +1,9 @@
 diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
 new file mode 100644
-index 0000000..6a84a2f
+index 0000000..e310f57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,208 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
 + *
@@ -51,12 +51,14 @@ index 0000000..6a84a2f
 +/dts-v1/;
 +
 +#include "fsl-ls1012a.dtsi"
++#include <dt-bindings/net/ti-dp83867.h>
 +
 +/ {
 +	model = "LS1012A NanoFW Board";
 +	compatible = "fsl,ls1012a-nanofw", "fsl,ls1012a";
 +
 +	aliases {
++		serial0 = &duart0;
 +		ethernet0 = &pfe_mac0;
 +		ethernet1 = &pfe_mac1;
 +	};
@@ -86,6 +88,12 @@ index 0000000..6a84a2f
 +	clocks = <&qsysclk>;
 +	clock-frequency = <400000>;
 +	status = "okay";
++
++	pca9555: pca9555@20 {
++		compatible = "nxp,pca9555";
++		reg = <0x20>;
++		status = "okay";
++	};
 +
 +	ksz9897: ksz9897@5f {
 +		compatible = "microchip,i2c-ksz9897", "microchip,ksz9897";
@@ -132,13 +140,17 @@ index 0000000..6a84a2f
 +	status = "okay";
 +	#address-cells = <1>;
 +	#size-cells = <0>;
-+	clocks = <&qsysclk>;
++
++	/* NOTE
++	 * u-boot may change the setup for existing hardware
++	 * see ls1012ananofw.c board setup file (u-boot)
++	 */
 +
 +	ethernet@0 {
 +		compatible = "fsl,pfe-gemac-port";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+		reg = <0x0>;	/* GEM_ID */
++		reg = <0x0>;			/* GEM_ID */
 +		fsl,gemac-bus-id = <0x0>;	/* BUS_ID */
 +		fsl,gemac-phy-id = <0x2>;	/* PHY_ID */
 +		fsl,mdio-mux-val = <0x0>;
@@ -146,7 +158,29 @@ index 0000000..6a84a2f
 +		fsl,pfe-phy-if-flags = <0x0>;
 +
 +		mdio@0 {
-+			reg = <0x1>; /* enabled/disabled */
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			reg = <0x1>;		/* enabled/disabled */
++
++			ethernet-phy@2 {
++				compatible = "ethernet-phy-id2000.a231";
++				reg = <2>;
++				ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_25_NS>;
++				ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_75_NS>;
++				ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
++				ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
++			};
++
++			/* NOTE this is the phy from gamc 1 - connected to bus MDIO 0 */
++			ethernet-phy@1 {	/* u-boot may remove this */
++				compatible = "ethernet-phy-id2000.a231";
++				reg = <1>;
++				ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
++				ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
++				ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
++				ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
++			};
 +		};
 +	};
 +
@@ -154,26 +188,28 @@ index 0000000..6a84a2f
 +		compatible = "fsl,pfe-gemac-port";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+		reg = <0x1>;	/* GEM_ID */
-+		fsl,gemac-bus-id = < 0x1 >;	/* BUS_ID */
-+		fsl,gemac-phy-id = < 0x0 >;	/* PHY_ID */
++		reg = <0x1>;			/* GEM_ID */
++		fsl,gemac-bus-id = <0x1>;	/* BUS_ID */
++		fsl,gemac-phy-id = <0x1>;	/* PHY_ID */
 +		fsl,mdio-mux-val = <0x0>;
-+		phy-mode = "sgmii";
++		phy-mode = "rgmii-txid";	/* u-boot may change this */
 +		fsl,pfe-phy-if-flags = <0x0>;
 +
-+		mdio@0 {
-+			reg = <0x1>; /* enabled/disabled */
++		mdio@0 {			/* dummy */
++			reg = <0x0>;		/* u-boot may enable this */
 +		};
 +
-+		ksz9897@0 {
++		ksz9897@0 {			/* u-boot may remove this */
 +			#address-cells = <1>;
 +			#size-cells = <0>;
 +			reg = <0x0>;		/* mdio bus id */
 +
-+			phy0: ethernet-phy@0 {
++			ethernet-phy@0 {
 +				reg = <0x01>;	/* phy id (port 0 = phy id 1) */
 +				phy-mode = "gmii";
 +			};
-+ 		};
++		};
 +	};
++
 +};
++
