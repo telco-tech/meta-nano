@@ -12,6 +12,7 @@ SRC_URI += "\
 	file://ksz9897_04_single_led_mode.patch \
 	file://IS25WPxxx_qspi_flash_info.patch \
 	file://dp83867_add_dt_led_setup.patch \
+	file://dp83867_sysfs_register_debug.patch;apply=no \
 	file://ls1012ananofw_dts.patch \
 	file://ls1012ananofw.cfg \
 "

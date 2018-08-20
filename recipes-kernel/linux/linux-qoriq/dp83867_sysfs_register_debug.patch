@@ -1,0 +1,80 @@
+diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
+index 38cc94d..f44e3a7 100644
+--- a/drivers/net/phy/dp83867.c
++++ b/drivers/net/phy/dp83867.c
+@@ -19,6 +19,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/phy.h>
++#include <linux/netdevice.h>
+ 
+ #include <dt-bindings/net/ti-dp83867.h>
+ 
+@@ -160,6 +161,57 @@ static int dp83867_of_init(struct phy_device *phydev)
+ }
+ #endif /* CONFIG_OF_MDIO */
+ 
++static ssize_t dp83867_registers_read(struct file *filp, struct kobject *kobj,
++	struct bin_attribute *bin_attr, char *buf, loff_t off, size_t count)
++{
++	struct device *dev;
++	struct mdio_device *mdio;
++	struct phy_device *phydev;
++	int i;
++	uint16_t *b = (uint16_t*) buf;
++
++	dev = container_of(kobj, struct device, kobj);
++	mdio = container_of(dev, struct mdio_device, dev);
++	phydev = container_of(mdio, struct phy_device, mdio);
++
++	count >>= 1;
++	off >>= 1;
++
++	for (i = 0; i < count && off < bin_attr->size; i++, off++) {
++		if (off <= 0x1f)
++			b[i] = phy_read(phydev, off);
++		else
++			b[i] = phy_read_mmd_indirect(phydev, off, DP83867_DEVADDR);
++	}
++
++	return i;
++}
++
++static const struct bin_attribute dp83867_registers_attr = {
++	.attr = {
++		.name   = "registers",
++		.mode   = S_IRUSR,
++	},
++	.size   = 0x1A9 * 2,
++	.read   = dp83867_registers_read,
++};
++
++static int dp83867_probe(struct phy_device *phydev) {
++	int ret;
++
++	ret = sysfs_create_bin_file(&phydev->mdio.dev.kobj, &dp83867_registers_attr);
++	if (ret) {
++		dev_err(&phydev->mdio.dev, "unable to create sysfs file, err=%d\n",
++				    ret);
++	}
++
++	return 0;
++}
++
++void dp83867_remove(struct phy_device *phydev) {
++	sysfs_remove_bin_file(&phydev->mdio.dev.kobj, &dp83867_registers_attr);
++}
++
+ static int dp83867_config_init(struct phy_device *phydev)
+ {
+ 	struct dp83867_private *dp83867;
+@@ -258,6 +310,9 @@ static struct phy_driver dp83867_driver[] = {
+ 		.read_status	= genphy_read_status,
+ 		.suspend	= genphy_suspend,
+ 		.resume		= genphy_resume,
++
++		.probe		= dp83867_probe,
++		.remove		= dp83867_remove,
+ 	},
+ };
+ module_phy_driver(dp83867_driver);
