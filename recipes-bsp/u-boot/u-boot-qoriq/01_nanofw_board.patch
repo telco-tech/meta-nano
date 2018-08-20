@@ -5,7 +5,7 @@ index 31688ff..6c98921 100644
 @@ -886,6 +886,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
- 
+
 +config TARGET_LS1012ANANOFW
 +	bool "Support ls1012ananofw"
 +	select ARCH_LS1012A
@@ -425,7 +425,7 @@ new file mode 100644
 index 0000000..55f914f
 --- /dev/null
 +++ b/include/configs/ls1012ananofw.h
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,150 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -563,6 +563,7 @@ index 0000000..55f914f
 +		   "/flex_installer_arm64.itb; "	\
 +		   "bootm $load_addr#$board\0"	\
 +	"itb_bootcmd=echo Trying load from sd..;"	\
++		   "pfe stop; " \
 +		   "load mmc 0:1 $load_addr /Image.itb; " \
 +		   "bootm $load_addr\0"
 +
