@@ -4,6 +4,11 @@ SRC_URI += "\
 	file://grub-install-emmc \
 "
 
+# grub-install-emmc
+RDEPENDS_${PN} += "dosfstools"
+RRECOMMENDS_${PN} += "kernel-module-vfat"
+
+
 do_install_append() {
 	install -d ${D}${bindir}
 	install -m 0755 ${WORKDIR}/grub-install-emmc ${D}${bindir}/

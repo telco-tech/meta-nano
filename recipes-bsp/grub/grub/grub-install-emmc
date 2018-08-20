@@ -15,6 +15,11 @@ do_cleanup() {
 	echo 1 > /sys/block/${BOOTDEV##*/}/force_ro
 }
 
+do_exit() {
+	echo "${1} failed"
+	exit 1
+}
+
 if [ -z "${BOOTDEV}" ]; then
 	echo "failed to find emmc boot device (ie. mmcblk0boot0)"
 	exit 1
@@ -35,16 +40,23 @@ done
 
 if [ -z "${DTB_FILE}" ]; then
 	echo "missing devicetree binary file (--dtb-file=...)"
-	exit 2
+	exit 1
 fi
+
+for I in vfat; do
+	[ $(grep -c ${I} /proc/filesystems) -gt 0 ] \
+		&& continue
+
+	modprobe ${I} &>/dev/null || do_exit "modprobe"
+done
 
 dd if=/dev/zero of=${TMPPART} bs=1M count=10 &>/dev/null
 
-mkfs.fat ${TMPPART} &>/dev/null || exit 3
+mkfs.fat ${TMPPART} &>/dev/null || do_exit "create temporary fat filesystem"
 
-mount ${TMPPART} ${TMPMNT} || exit 4
+mount ${TMPPART} ${TMPMNT} || do_exit "mount temporary fat filesystem"
 
-grub-install ${GRUBARGS} --install-modules="${GRUBMODULES}" || exit 5
+grub-install ${GRUBARGS} --install-modules="${GRUBMODULES}" || do_exit "grub-install"
 
 echo 0 > /sys/block/${BOOTDEV##*/}/force_ro
 
@@ -56,13 +68,13 @@ DTB_SIZE=$(stat ${DTB_FILE} | sed -n '/Blocks:/{s/.*Blocks: \([0-9]*\).*/\1/;p}'
 GRUBEFI_START=1
 DTB_START=$((GRUBEFI_START + ${GRUBEFI_SIZE}))
 
-printf "grubefi_start=%x\ngrubefi_size=%x\ndtb_start=%x\ndtb_size=%x" ${GRUBEFI_START} ${GRUBEFI_SIZE} $((GRUBEFI_START + ${GRUBEFI_SIZE})) ${DTB_SIZE} > ${BOOTDEV}
+printf "grubefi_start=%x\ngrubefi_size=%x\ndtb_start=%x\ndtb_size=%x\n" ${GRUBEFI_START} ${GRUBEFI_SIZE} $((GRUBEFI_START + ${GRUBEFI_SIZE})) ${DTB_SIZE} > ${BOOTDEV}
 
 echo "write grubaa64.efi to emmc ..."
-dd if=${TMPMNT}/EFI/grub/grubaa64.efi of=${BOOTDEV} bs=1b seek=${GRUBEFI_START} &>/dev/null || exit 6
+dd if=${TMPMNT}/EFI/grub/grubaa64.efi of=${BOOTDEV} bs=1b seek=${GRUBEFI_START} &>/dev/null || do_exit "write efi image to emmc"
 
 echo "write devicetree to emmc ..."
-dd if=${DTB_FILE} of=${BOOTDEV} bs=1b seek=${DTB_START} &>/dev/null || exit 7
+dd if=${DTB_FILE} of=${BOOTDEV} bs=1b seek=${DTB_START} &>/dev/null || do_exit "write devicetree to emmc"
 
 echo "grub-install-emmc success"
 
