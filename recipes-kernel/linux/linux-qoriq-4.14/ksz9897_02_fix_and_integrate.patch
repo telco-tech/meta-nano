@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ethernet/micrel/Kconfig b/drivers/net/ethernet/micrel/Kconfig
-index b7e2f49..5ec5618 100644
+index b7e2f49696b7..5ec56189fb08 100644
 --- a/drivers/net/ethernet/micrel/Kconfig
 +++ b/drivers/net/ethernet/micrel/Kconfig
 @@ -61,4 +61,6 @@ config KSZ884X_PCI
@@ -10,16 +10,16 @@ index b7e2f49..5ec5618 100644
 +
  endif # NET_VENDOR_MICREL
 diff --git a/drivers/net/ethernet/micrel/Makefile b/drivers/net/ethernet/micrel/Makefile
-index c83e4bc..97e4c13 100644
+index 848fc1c5a5dc..059b527a1ca7 100644
 --- a/drivers/net/ethernet/micrel/Makefile
 +++ b/drivers/net/ethernet/micrel/Makefile
-@@ -7,3 +7,4 @@ obj-$(CONFIG_KS8842) += ks8842.o
+@@ -8,3 +8,4 @@ obj-$(CONFIG_KS8842) += ks8842.o
  obj-$(CONFIG_KS8851) += ks8851.o
  obj-$(CONFIG_KS8851_MLL) += ks8851_mll.o
  obj-$(CONFIG_KSZ884X_PCI) += ksz884x.o
 +obj-$(CONFIG_HAVE_KSZ9897) += ksz9897/
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c b/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
-index d4bd471..79228a3 100644
+index d4bd471a38fe..79228a3b563b 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_iba.c
 @@ -647,12 +647,12 @@ static void assert_buf(const char *name, int i, size_t func_size, u32 *buf,
@@ -38,7 +38,7 @@ index d4bd471..79228a3 100644
  		assert = true;
  	}
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
-index ed8a0eb..5f2871c 100644
+index ed8a0eb9595c..4b1b40bf7737 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
 @@ -1379,6 +1379,7 @@ static u32 ptp_get_dev_port(struct ptp_info *ptp, int start, uint port)
@@ -57,8 +57,50 @@ index ed8a0eb..5f2871c 100644
  
  static void add_tx_delay(struct ptp_ts *ts, int delay, u32 cur_sec)
  {
+@@ -5450,7 +5452,7 @@ static void set_ptp_drift(struct ptp_info *ptp, int drift)
+ }  /* set_ptp_drift */
+ 
+ static void check_sys_time(struct ptp_info *ptp, unsigned long cur_jiffies,
+-	union ktime cur_ktime)
++	ktime_t cur_ktime)
+ {
+ 	int diff;
+ 	int interval;
+@@ -5513,8 +5515,8 @@ static void check_sys_time(struct ptp_info *ptp, unsigned long cur_jiffies,
+ 		drift_jiffies *= 1000;
+ 		drift_jiffies = div_s64_rem(drift_jiffies, passed_sec, &rem);
+ 
+-		cur_ktime.tv64 -= ptp->first_ktime.tv64;
+-		drift_ktime = cur_ktime.tv64 - passed_nsec;
++		cur_ktime -= ptp->first_ktime;
++		drift_ktime = cur_ktime - passed_nsec;
+ 		drift_ktime = div_s64_rem(drift_ktime, passed_sec, &rem);
+ 
+ 		if (!ptp->clk_divider) {
+@@ -5557,7 +5559,7 @@ static void proc_ptp_intr(struct ptp_info *ptp)
+ 	u8 data[24];
+ 	int i;
+ 	int tsi;
+-	union ktime cur_ktime;
++	ktime_t cur_ktime;
+ 	struct timespec ts;
+ 	struct ksz_sw *sw = container_of(ptp, struct ksz_sw, ptp_hw);
+ 
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.h b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.h
+index 16dd5730b303..7c3f645ff102 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.h
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.h
+@@ -971,7 +971,7 @@ struct ptp_info {
+ 	u32 intr_sec;
+ 	unsigned long last_jiffies;
+ 	u64 total_jiffies;
+-	union ktime first_ktime;
++	ktime_t first_ktime;
+ 	int first_drift;
+ 	struct ptp_ts last_rx_ts;
+ 	struct ptp_ts last_tx_ts;
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h b/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
-index ada7acd..99478a6 100644
+index ada7acddf3bf..99478a6ea739 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_spi_net.h
 @@ -87,7 +87,6 @@ struct spi_hw_priv {
@@ -78,7 +120,7 @@ index ada7acd..99478a6 100644
  	struct phy_device *phydev;
  
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index a566135..ec68241 100644
+index 08ddad46753f..512e6e900a5c 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 @@ -4613,12 +4613,12 @@ static void port_cfg_power(struct ksz_sw *sw, uint p, bool set)
@@ -105,6 +147,15 @@ index a566135..ec68241 100644
  		sw->info->port_cfg[port].intr_mask |= PORT_SGMII_INT;
  	}
  
+@@ -14225,7 +14225,7 @@ static struct sk_buff *sw_check_skb(struct ksz_sw *sw, struct sk_buff *skb,
+ 		if (!sk) {
+ 			sk = &dummy;
+ 			sk->sk_allocation = GFP_KERNEL;
+-			atomic_set(&sk->sk_wmem_alloc, 1);
++			refcount_set(&sk->sk_wmem_alloc, 1);
+ 		}
+ 
+ 		/* Clear last tag. */
 @@ -16085,7 +16085,7 @@ static int sw_setup_dev(struct ksz_sw *sw, struct net_device *dev,
  		struct sw_priv *hw_priv = container_of(sw, struct sw_priv, sw);
  
@@ -242,7 +293,7 @@ index a566135..ec68241 100644
  		for (i = 0; i <= sw->mib_port_cnt; i++)
  			sw->phy[i] = &sw->phy_map[i];
 diff --git a/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c b/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
-index 9533f2c..a9aa75d 100644
+index 9533f2c9ad46..a9aa75d57dec 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/micrel_ptp.c
 @@ -127,7 +127,8 @@ static int ptp_adjtime(struct ptp_clock_info *clock, s64 delta)

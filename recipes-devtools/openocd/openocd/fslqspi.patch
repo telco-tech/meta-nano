@@ -1,0 +1,1315 @@
+diff --git a/src/flash/nor/Makefile.am b/src/flash/nor/Makefile.am
+index 5a992fe..9e2409c 100644
+--- a/src/flash/nor/Makefile.am
++++ b/src/flash/nor/Makefile.am
+@@ -55,7 +55,8 @@ NOR_DRIVERS = \
+ 	%D%/tms470.c \
+ 	%D%/virtual.c \
+ 	%D%/xmc1xxx.c \
+-	%D%/xmc4xxx.c
++	%D%/xmc4xxx.c \
++	%D%/fslqspi.c
+ 
+ NORHEADERS = \
+ 	%D%/core.h \
+diff --git a/src/flash/nor/drivers.c b/src/flash/nor/drivers.c
+index 4ad1d92..b60138a 100644
+--- a/src/flash/nor/drivers.c
++++ b/src/flash/nor/drivers.c
+@@ -67,6 +67,7 @@ extern struct flash_driver tms470_flash;
+ extern struct flash_driver virtual_flash;
+ extern struct flash_driver xmc1xxx_flash;
+ extern struct flash_driver xmc4xxx_flash;
++extern struct flash_driver fslqspi_flash;
+ 
+ /**
+  * The list of built-in flash drivers.
+@@ -120,6 +121,7 @@ static struct flash_driver *flash_drivers[] = {
+ 	&virtual_flash,
+ 	&xmc1xxx_flash,
+ 	&xmc4xxx_flash,
++	&fslqspi_flash,
+ 	NULL,
+ };
+ 
+diff --git a/src/flash/nor/fslqspi.c b/src/flash/nor/fslqspi.c
+new file mode 100644
+index 0000000..e990d2f
+--- /dev/null
++++ b/src/flash/nor/fslqspi.c
+@@ -0,0 +1,1254 @@
++/***************************************************************************
++ *   Copyright (C) 2018 Mario Bernhard <bernhard@f1-gmbh.de>               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
++ ***************************************************************************/
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <endian.h>
++#include <string.h>
++
++#include "imp.h"
++#include "spi.h"
++
++/*
++ * Flash
++ */
++
++#define FLASH_SIZE_16M		(1 << 24)
++
++/* QSPI Commands */
++#define QSPI_CMD_PAGE_PROGRAM	0x02
++#define QSPI_CMD_READ_SR1V	0x05
++#define QSPI_CMD_WRITE_ENABLE	0x06
++#define QSPI_CMD_FAST_READ	0x0b
++#define QSPI_CMD_FAST_READ4	0x0c
++#define QSPI_CMD_PAGE_PROGRAM4	0x12
++#define QSPI_CMD_READ_ANY_REG	0x65
++#define QSPI_CMD_WRITE_ANY_REG	0x71
++#define QSPI_CMD_BULK_ERASE	0xc7 /* 0x60 */
++#define QSPI_CMD_READ_ID	0x9f
++#define QSPI_CMD_SECTOR_ERASE	0xd8
++#define QSPI_CMD_SECTOR_ERASE4	0xdc
++
++/* Register */
++#define QSPI_REG_SRV1_WIP	(1 << 0)
++#define QSPI_REG_SRV1_WEL	(1 << 1)
++#define QSPI_REG_SRV1_BP	(7 << 2)
++#define QSPI_REG_SRV1_E_ERR	(1 << 5)
++#define QSPI_REG_SRV1_P_ERR	(1 << 6)
++
++
++/*
++ * LS1012A
++ */
++
++#define QSPI_STATUS_TIMEOUT	1000
++
++#define MSB(x)			(31 - x)
++
++#define PBR_BASE		0x1550000			/* Peripheral Bus Register */
++
++#define PBR_MCR			(PBR_BASE + 0x00)		/* Module Configuration */
++#define MCR_CLR_TXF		(1 << MSB(20))
++#define MCR_CLR_RXF		(1 << MSB(21))
++#define MCR_RSV			(0x0f << MSB(15))
++#define MCR_MDIS		(1 << MSB(17))
++#define MCR_END_CFG_BE64	(0x00 << MSB(29))
++#define MCR_END_CFG_LE32	(0x01 << MSB(29))
++#define MCR_END_CFG_LE64	(0x03 << MSB(29))
++#define MCR_END_CFG_BE32	(0x02 << MSB(29))
++
++#define PBR_IPCR		(PBR_BASE + 0x08)		/* IP Configuration */
++#define IPCR_SEQID(x)		(lutmap[x] << (MSB(7)))
++
++#define PBR_SFAR		(PBR_BASE + 0x100)		/* Serial Flash Address */
++
++#define PBR_RBSR		(PBR_BASE + 0x10c)		/* RX Buffer Status */
++#define RBSR_RDBFL(x)		((x >> (MSB(23))) & 0x3f)
++
++#define PBR_RBCT		(PBR_BASE + 0x110)		/* RX Buffer Control */
++#define RBCT_RXBRD_IPB		(1 << MSB(23))
++
++#define PBR_TBSR		(PBR_BASE + 0x150)		/* TX Buffer Status */
++
++#define PBR_TBDR		(PBR_BASE + 0x154)		/* TX Buffer Data */
++#define TBDR_SIZE		64 /* circular TX Buffer */
++
++#define PBR_SR			(PBR_BASE + 0x15c)		/* Status */
++#define SR_BUSY			(1 << MSB(31))
++
++#define PBR_RBDRn		(PBR_BASE + 0x200)		/* RX Buffer Data */
++#define RBDR_SIZE		(32 * 4)
++
++#define PBR_LUTKEY		(PBR_BASE + 0x300)		/* LUT Key */
++
++#define PBR_LCKCR		(PBR_BASE + 0x304)		/* LUT Lock Configuration */
++#define LCKCR_LOCK		(1 << MSB(31))
++#define LCKCR_UNLOCK		(1 << MSB(30))
++
++#define PBR_LUTn		(PBR_BASE + 0x310)		/* Look-up Table (0) */
++
++/* address mode */
++#define QSPI_ADDR_3B		0x18
++#define QSPI_ADDR_4B		0x20
++
++/* Sequence Engine Instructions (LS1012A Reference Manual S.1411) */
++#define SEI_STOP		0x00
++#define SEI_CMD			0x01
++#define SEI_ADDR		0x02
++#define SEI_DUMMY		0x03
++#define SEI_MODE		0x04
++#define SEI_MODE2		0x05
++#define SEI_MODE4		0x06
++#define SEI_READ		0x07
++#define SEI_WRITE		0x08
++#define SEI_JMP_ON_CS		0x09
++
++
++enum {
++	SEQID_READ = 0,				/* read (0x03 - reset value on LS1012A) */
++	SEQID_WRITE_ENABLE,
++	SEQID_FAST_READ,
++	SEQID_FAST_READ4,
++	SEQID_READ_STATUS_REG,
++	SEQID_SECTOR_ERASE,			/* erase an sector */
++	SEQID_SECTOR_ERASE4,
++	SEQID_BULK_ERASE,			/* erase the whole chip */
++	SEQID_PAGE_PROGRAM,
++	SEQID_PAGE_PROGRAM4,
++	SEQID_RDID,				/* read ID (0x9f) */
++	SEQID_WRITE_ANY_REG,
++	SEQID_READ_ANY_REG,
++	SEQID_MAX,
++};
++
++static uint8_t lutmap[SEQID_MAX];
++
++#define LUT(N, I) \
++	(PBR_LUTn + N * 16 + (I * 4))
++
++/* NOTE PAD(0/1) always set to Pad1 (value 0) */
++#define LUT_REG(INST0, OP0, INST1, OP1) \
++	htobe32(OP0 | (INST0 << 10) | (OP1 << 16) | (INST1 << 26))
++
++
++struct fslqspi_flash_bank {
++	const struct flash_device *dev;
++	uint8_t probed;
++	uint32_t base, endian;
++};
++
++
++static int fslqspi_lut_find(struct target *target,
++					uint32_t value[4], uint8_t *free)
++{
++	uint32_t r;
++	int i, j;
++
++	*free = 0xff;
++
++	for (i = 0; i < 16; i++) {
++		for (j = 0; j < 4; j++) {
++			if (target_read_u32(target, LUT(i, j), &r))
++				break;
++
++			if (r != value[j]) {
++				if (j == 0 && r == 0x00 && *free == 0xff)
++					*free = i;
++				break;
++			}
++		}
++
++		if (j < 4)
++			continue;
++
++		return i;
++	}
++
++	return 0xff;
++}	/* fslqspi_lut_find */
++
++
++static int fslqspi_lut_write(struct target *target,
++					uint32_t seqid, uint32_t value[4])
++{
++	uint8_t l;
++	int i;
++
++	do {
++		lutmap[seqid] = fslqspi_lut_find(target, value, &l);
++
++		if (lutmap[seqid] == 0xff && l == 0xff)
++			break;
++
++		if (lutmap[seqid] == 0xff) {
++
++			for (i = 0; i < 4; i++) {
++				if (target_write_u32(target, LUT(l, i), value[i]))
++					break;
++			}
++
++			if (i < 4)
++				break;
++
++			lutmap[seqid] = l;
++		}
++
++		return ERROR_OK;
++
++	} while (0);
++
++	return ERROR_FAIL;
++}	/* fslqspi_lut_write */
++
++
++static int fslqspi_wait_status(struct target *target,
++			       uint32_t mask, uint32_t status, int timeout)
++{
++	uint32_t reg;
++	int ret;
++
++	do {
++		if ((ret = target_read_u32(target, PBR_SR, &reg)))
++			break;
++
++		if ((be32toh(reg) & mask) == status)
++			return 0;
++
++		if (timeout > 0)
++			timeout--;
++
++	} while (timeout != 0);
++
++	return (timeout == 0)? 1 : ret;
++}	/* fslqspi_wait_status */
++
++
++static int fslqspi_op_init(struct flash_bank *bank, uint32_t *mcr)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t reg = 0;
++
++	do {
++		if (target_read_u32(target, PBR_MCR, &reg))
++			break;
++
++		if (target_write_u32(target, PBR_MCR,
++		    htobe32(MCR_CLR_TXF | MCR_CLR_RXF | MCR_RSV
++		    | fslqspi_info->endian)))
++			break;
++
++		if (target_write_u32(target, PBR_RBCT, htobe32(RBCT_RXBRD_IPB)))
++			break;
++
++		if (mcr != NULL)
++			*mcr = reg;
++
++		return ERROR_OK;
++	} while (0);
++
++	if (reg != 0)
++		target_write_u32(target, PBR_MCR, reg);
++
++	return ERROR_FAIL;
++}	/* fslqspi_op_init */
++
++
++static int fslqspi_target_status(struct flash_bank *bank,
++				 uint32_t seqid, uint32_t addr, uint32_t *status)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t rbsr, mcr;
++
++	do {
++		if (target_write_u32(target, PBR_SFAR,
++		    htobe32(fslqspi_info->base + addr)))
++			break;
++
++		if (target_write_u32(target, PBR_IPCR,
++		    htobe32(IPCR_SEQID(seqid) | 1)))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0,
++		    QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		if (target_read_u32(target, PBR_RBSR, &rbsr))
++			break;
++
++		if (RBSR_RDBFL(be32toh(rbsr)) > 0) {
++			if (target_read_u32(target, PBR_RBDRn, status))
++				break;
++
++			if (fslqspi_info->endian & 0x06) /* LE */
++				*status = be32toh(*status);
++		}
++
++		if (target_read_u32(target, PBR_MCR, &mcr))
++			break;
++
++		if (target_write_u32(target, PBR_MCR,
++		    mcr | htobe32(MCR_CLR_RXF)))
++			break;
++
++		return ERROR_OK;
++	} while (0);
++
++	return ERROR_FAIL;
++}	/* fslqspi_target_status */
++
++
++static int fslqspi_wait_target_status(struct flash_bank *bank)
++{
++	uint32_t status = 0;
++	int ret = ERROR_FAIL;
++
++	while (fslqspi_target_status(bank, SEQID_READ_STATUS_REG, 0, &status)
++	    == ERROR_OK) {
++
++		if (status & QSPI_REG_SRV1_E_ERR) {
++			LOG_ERROR("Error: QSPI Erase Error Occurred");
++			break;
++		}
++
++		if (status & QSPI_REG_SRV1_P_ERR) {
++			LOG_ERROR("Error: QSPI Programming Error Occurred");
++			break;
++		}
++
++		if (status & QSPI_REG_SRV1_BP) {
++			LOG_ERROR("Error: QSPI Block Protection Volatile");
++			break;
++		}
++
++		if (status & QSPI_REG_SRV1_WIP) {
++			usleep(10);
++			continue;
++		}
++
++		ret = ERROR_OK;
++		break;
++	}
++
++	return ret;
++}	/* fslqspi_wait_target_status */
++
++
++static int fslqspi_write_enable(struct flash_bank *bank)
++{
++	struct target *target = bank->target;
++	uint32_t status = 0;
++
++	do {
++		if (target_write_u32(target, PBR_IPCR,
++		    htobe32(IPCR_SEQID(SEQID_WRITE_ENABLE))))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0,
++		    QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		if (fslqspi_target_status(bank, SEQID_READ_STATUS_REG,
++		    0, &status))
++			break;
++
++	} while((status & QSPI_REG_SRV1_WEL) != QSPI_REG_SRV1_WEL);
++
++	return ERROR_OK;
++}	/* fslqspi_write_enable */
++
++
++static int fslqspi_set_lut(struct target *target)
++{
++	uint32_t key = 0, v[4];
++	int ret = ERROR_FAIL;
++
++	do {
++		memset(lutmap, 0xff, sizeof(lutmap));
++
++		/* Unlock the LUT */
++		if (target_read_u32(target, PBR_LUTKEY, &key))
++			break;
++
++		if (target_write_u32(target, PBR_LUTKEY, key))
++			break;
++
++		if (target_write_u32(target, PBR_LCKCR, htobe32(LCKCR_UNLOCK)))
++			break;
++
++		/* write enable */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_WRITE_ENABLE, 0, 0);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_WRITE_ENABLE, v))
++			break;
++
++		/* fast read */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_FAST_READ, SEI_ADDR, QSPI_ADDR_3B);
++		v[1] = LUT_REG(SEI_DUMMY, 8, SEI_READ, RBDR_SIZE);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_FAST_READ, v))
++			break;
++
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_FAST_READ4, SEI_ADDR, QSPI_ADDR_4B);
++		v[1] = LUT_REG(SEI_DUMMY, 8, SEI_READ, RBDR_SIZE);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_FAST_READ4, v))
++			break;
++
++		/* read flash status register */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_READ_SR1V, SEI_READ, 1);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_READ_STATUS_REG, v))
++			break;
++
++		/* sector erase */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_SECTOR_ERASE, SEI_ADDR, QSPI_ADDR_3B);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_SECTOR_ERASE, v))
++			break;
++
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_SECTOR_ERASE4, SEI_ADDR, QSPI_ADDR_4B);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_SECTOR_ERASE4, v))
++			break;
++
++		/* bulk erase */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_BULK_ERASE, 0, 0);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_BULK_ERASE, v))
++			break;
++
++		/* page program */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_PAGE_PROGRAM, SEI_ADDR, QSPI_ADDR_3B);
++		v[1] = LUT_REG(SEI_WRITE, TBDR_SIZE, 0, 0);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_PAGE_PROGRAM, v))
++			break;
++
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_PAGE_PROGRAM4, SEI_ADDR, QSPI_ADDR_4B);
++		v[1] = LUT_REG(SEI_WRITE, TBDR_SIZE, 0, 0);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_PAGE_PROGRAM4, v))
++			break;
++
++		/* read identification */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_READ_ID, SEI_READ, 8);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_RDID, v))
++			break;
++
++		/* write any device register */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_WRITE_ANY_REG, SEI_ADDR, QSPI_ADDR_3B);
++		v[1] = LUT_REG(SEI_WRITE, 1, 0, 0);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_WRITE_ANY_REG, v))
++			break;
++
++		/* read any device register */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_READ_ANY_REG, SEI_ADDR, QSPI_ADDR_3B);
++		v[1] = LUT_REG(SEI_DUMMY, 0, SEI_READ, 1);
++		v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_READ_ANY_REG, v))
++			break;
++
++		ret = ERROR_OK;
++	} while (0);
++
++	/* Lock the LUT */
++	target_write_u32(target, PBR_LUTKEY, key);
++	target_write_u32(target, PBR_LCKCR, htobe32(LCKCR_LOCK));
++
++	return ret;
++}	/* fslqspi_set_lut */
++
++
++static int fslqspi_read_id(struct flash_bank *bank, uint32_t *id)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t mcr = 0, rbsr, val, i, endian;
++	int ret = ERROR_FAIL;
++
++	do {
++		endian = fslqspi_info->endian;
++		fslqspi_info->endian = MCR_END_CFG_LE32;
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		if (target_write_u32(target, PBR_SFAR, htobe32(fslqspi_info->base)))
++			break;
++
++		if (target_write_u32(target, PBR_IPCR, htobe32(IPCR_SEQID(SEQID_RDID))))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0, QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		if (target_read_u32(target, PBR_RBSR, &rbsr))
++			break;
++
++		rbsr = RBSR_RDBFL(be32toh(rbsr));
++
++		for (i = 0; i < rbsr; i++) {
++			if (target_read_u32(target, PBR_RBDRn + i * 4, &val))
++				break;
++
++			switch(i) {
++			case 0:
++				*id = be32toh(val);
++				*id &= 0x00ffffff; /* see spi.c */
++
++				LOG_INFO("Found flash device Manufacturer "
++				    "ID: 0x%x   "
++				    "Memeory Interface Type: 0x%x   "
++				    "Density: 0x%x",
++				    (*id & 0xff), ((*id >> 8) & 0xff),
++				    ((*id >> 16) & 0xff));
++
++				break;
++
++			case 1:
++				LOG_INFO("                   Family ID: 0x%x   "
++				    "Model Number: %c%c",
++				    ((val >> 16) & 0xff), (val >> 8) & 0xff,
++				    (val & 0xff));
++
++				break;
++
++			default:
++				break;
++			}
++		}
++
++		if (i < rbsr)
++			break;
++
++		ret = ERROR_OK;
++	} while (0);
++
++	if (mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	fslqspi_info->endian = endian;
++
++	return ret;
++}	/* fslqspi_read_id */
++
++
++static int fslqspi_probe(struct flash_bank *bank)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	struct flash_sector *sectors;
++	const struct flash_device *fdev;
++	int ret = ERROR_FAIL;
++	uint32_t device_id = 0;
++
++	do {
++		if (fslqspi_info->probed) {
++			ret = ERROR_OK;
++			break;
++		}
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (fslqspi_set_lut(target))
++			break;
++
++		if (fslqspi_read_id(bank, &device_id))
++			break;
++
++		for (fdev = flash_devices; fdev->name != NULL; fdev++) {
++			if (fdev->device_id == device_id) {
++				fslqspi_info->dev = fdev;
++				break;
++			}
++		}
++
++		if (fslqspi_info->dev == NULL) {
++			LOG_ERROR("Unknown flash device ID 0x%08" PRIx32, device_id);
++			break;
++		}
++
++		bank->size = fslqspi_info->dev->size_in_bytes;
++		bank->num_sectors = fslqspi_info->dev->size_in_bytes
++		    / fslqspi_info->dev->sectorsize;
++
++		if ((sectors = malloc(sizeof(struct flash_sector)
++		    * bank->num_sectors)) == NULL) {
++			LOG_ERROR("not enough memory");
++			break;
++		}
++
++		for (int sector = 0; sector < bank->num_sectors; sector++) {
++			sectors[sector].offset = sector * fslqspi_info->dev->sectorsize;
++			sectors[sector].size = fslqspi_info->dev->sectorsize;
++			sectors[sector].is_erased = -1;
++			sectors[sector].is_protected = 1;
++		}
++
++		bank->sectors = sectors;
++		fslqspi_info->probed = 1;
++
++		/* NOTE always 32 bit for IPS RX/TX */
++#if defined(__aarch64__) || defined(__x86_64__) || defined(__ppc64__) || defined(__ia64)
++#if __BYTE_ORDER == __LITTLE_ENDIAN
++		fslqspi_info->endian = MCR_END_CFG_LE64;
++#else
++		fslqspi_info->endian = MCR_END_CFG_BE64;
++#endif
++#else
++#if __BYTE_ORDER == __LITTLE_ENDIAN
++		fslqspi_info->endian = MCR_END_CFG_LE32;
++#else
++		fslqspi_info->endian = MCR_END_CFG_BE32;
++#endif
++#endif
++		ret = ERROR_OK;
++	} while (0);
++
++	return ret;
++}	/* fslqspi_probe */
++
++
++static int fslqspi_auto_probe(struct flash_bank *bank)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++
++	if (fslqspi_info->probed)
++		return ERROR_OK;
++
++	return fslqspi_probe(bank);
++}	/* fslqspi_auto_probe */
++
++
++static int fslqspi_flash_read(struct flash_bank *bank,
++			      uint8_t *buffer, uint32_t offset, uint32_t count)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t mcr = 0, data;
++	int ret = ERROR_FAIL, size, i, cps, seqid;
++
++	do {
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		offset += fslqspi_info->base;
++
++		if (bank->size > FLASH_SIZE_16M)
++			seqid = SEQID_FAST_READ4;
++		else
++			seqid = SEQID_FAST_READ;
++
++		while (count > 0) {
++
++			size = (count > RBDR_SIZE)? RBDR_SIZE : count;
++
++			if (target_write_u32(target, PBR_SFAR, htobe32(offset)))
++				break;
++
++			if (target_write_u32(target, PBR_IPCR,
++			    htobe32(IPCR_SEQID(seqid) | size)))
++				break;
++
++			if (fslqspi_wait_status(target, SR_BUSY, 0, -1) != 0)
++				break;
++
++			for (i = 0, cps = 4; i < size; i += 4, buffer += 4) {
++				if (target_read_u32(target, PBR_RBDRn + i, &data))
++					break;
++
++				if (i + 4 > size)
++					cps = size - i;
++
++				memcpy(buffer, &data, cps);
++			}
++
++			if (i < size)
++				break;
++
++			if (target_read_u32(target, PBR_MCR, &data))
++				break;
++
++			if (target_write_u32(target, PBR_MCR,
++			    data | htobe32(MCR_CLR_RXF)))
++				break;
++
++			count -= size;
++			offset += size;
++		}
++
++		ret = ERROR_OK;
++	} while (0);
++
++	if (mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_flash_read */
++
++
++static int fslqspi_flash_write(struct flash_bank *bank,
++			 const uint8_t *buffer, uint32_t offset, uint32_t count)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t mcr = 0, *preg = &mcr, data;
++	int ret = ERROR_FAIL, sector, size, i, cps, seqid;
++
++	do {
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (offset + count > fslqspi_info->dev->size_in_bytes) {
++			LOG_WARNING("Writes past end of flash. Extra data discarded.");
++			count = fslqspi_info->dev->size_in_bytes - offset;
++		}
++
++		/* Check sector protection */
++		for (sector = 0; sector < bank->num_sectors; sector++) {
++			/* Start offset in or before this sector? */
++			/* End offset in or behind this sector? */
++			if ((offset < (bank->sectors[sector].offset
++			    + bank->sectors[sector].size))
++			    && ((offset + count - 1) >= bank->sectors[sector].offset)
++			    && bank->sectors[sector].is_protected) {
++				LOG_ERROR("Flash sector %d protected", sector);
++				break;
++			}
++		}
++
++		if (sector < bank->num_sectors)
++			break;
++
++		offset += fslqspi_info->base;
++
++		if (bank->size > FLASH_SIZE_16M)
++			seqid = SEQID_PAGE_PROGRAM4;
++		else
++			seqid = SEQID_PAGE_PROGRAM;
++
++		while (count > 0) {
++			if (fslqspi_op_init(bank, preg))
++				break;
++
++			preg = NULL;
++
++			if (fslqspi_write_enable(bank))
++				break;
++
++			size = (count > TBDR_SIZE)? TBDR_SIZE : count;
++
++			if (target_write_u32(target, PBR_SFAR, htobe32(offset)))
++				break;
++
++			for (i = 0, cps = 4; i < size; i += 4) {
++				if (i + 4 > size) {
++					data = 0;
++					cps = size - i;
++				}
++
++				memcpy(&data, buffer, cps);
++
++				if (target_write_u32(target, PBR_TBDR, data))
++					break;
++
++				buffer += cps;
++			}
++
++			if (i < size)
++				break;
++
++			if (target_write_u32(target, PBR_IPCR,
++			    htobe32(IPCR_SEQID(seqid) | size)))
++				break;
++
++			if (fslqspi_wait_status(target, SR_BUSY, 0, -1) != 0)
++				break;
++
++			count -= size;
++			offset += size;
++		}
++
++		if (count > 0)
++			break;
++
++		ret = ERROR_OK;
++	} while (0);
++
++	if (mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_flash_write */
++
++
++static int fslqspi_flash_erase(struct flash_bank *bank, int first, int last)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++	struct target *target = bank->target;
++	uint32_t mcr = 0, *preg = &mcr, offset;
++	int ret = ERROR_FAIL, sector, seqid;
++
++	do {
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if ((first < 0) || (last < first) || (last >= bank->num_sectors)) {
++			LOG_ERROR("Flash sector invalid");
++			ret = ERROR_FLASH_SECTOR_INVALID;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		for (sector = first; sector <= last; sector++) {
++			if (bank->sectors[sector].is_protected) {
++				LOG_ERROR("Flash sector %d protected", sector);
++				break;
++			}
++		}
++
++		if (sector <= last)
++			break;
++
++		if (first == 0 && last == (bank->num_sectors - 1)
++		    && fslqspi_info->dev->chip_erase_cmd
++		    != fslqspi_info->dev->erase_cmd) {
++
++			if (fslqspi_op_init(bank, &mcr))
++				break;
++
++			if (fslqspi_write_enable(bank))
++				break;
++
++			if (target_write_u32(target, PBR_SFAR,
++			    htobe32(fslqspi_info->base)))
++				break;
++
++			if (target_write_u32(target, PBR_IPCR,
++			    htobe32(IPCR_SEQID(SEQID_BULK_ERASE))))
++				break;
++
++			if (fslqspi_wait_status(target, SR_BUSY, 0, -1) != 0)
++				break;
++
++			if (fslqspi_wait_target_status(bank))
++				break;
++		} else {
++			if (bank->size > FLASH_SIZE_16M)
++				seqid = SEQID_SECTOR_ERASE4;
++			else
++				seqid = SEQID_SECTOR_ERASE;
++
++			do {
++				if (fslqspi_op_init(bank, preg))
++					break;
++
++				preg = NULL;
++
++				if (fslqspi_write_enable(bank))
++					break;
++
++				offset = fslqspi_info->base + first
++				    * fslqspi_info->dev->sectorsize;
++
++				if (target_write_u32(target, PBR_SFAR, htobe32(offset)))
++					break;
++
++				if (target_write_u32(target, PBR_IPCR,
++				    htobe32(IPCR_SEQID(seqid))))
++					break;
++
++				if (fslqspi_wait_status(target, SR_BUSY, 0, -1) != 0)
++					break;
++
++				if (fslqspi_wait_target_status(bank))
++					break;
++
++			} while (first++ < last);
++
++			if (first < last)
++				break;
++		}
++
++		ret = ERROR_OK;
++	} while (0);
++
++	if (mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_flash_erase */
++
++
++static int fslqspi_protect(struct flash_bank *bank, int set, int first, int last)
++{
++	int sector;
++
++	for (sector = first; sector <= last; sector++)
++		bank->sectors[sector].is_protected = set;
++
++	return ERROR_OK;
++}	/* fslqspi_protect */
++
++static int fslqspi_flash_erase_check(struct flash_bank *bank)
++{
++	LOG_DEBUG("%s", __FUNCTION__);
++	return ERROR_OK;
++}	/* fslqspi_flash_erase_check */
++
++
++static int fslqspi_protect_check(struct flash_bank *bank)
++{
++	LOG_DEBUG("%s", __FUNCTION__);
++	return 0;
++}
++
++
++static int fslqspi_get_info(struct flash_bank *bank, char *buf, int buf_size)
++{
++	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
++
++	if (!(fslqspi_info->probed)) {
++		snprintf(buf, buf_size, "\nQSPI flash bank not probed yet\n");
++		return ERROR_OK;
++	}
++
++	snprintf(buf, buf_size, "\nQSPI flash information:\n  "
++	    "Device \'%s\' ID 0x%08" PRIx32 "\n",
++	    fslqspi_info->dev->name, fslqspi_info->dev->device_id);
++
++	return ERROR_OK;
++}	/* fslqspi_get_info */
++
++
++FLASH_BANK_COMMAND_HANDLER(fslqspi_flash_bank_command)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++
++	if (CMD_ARGC < 6)
++		return ERROR_COMMAND_SYNTAX_ERROR;
++
++	if ((fslqspi_info = calloc(1, sizeof(struct fslqspi_flash_bank))) == NULL) {
++		LOG_ERROR("not enough memory");
++		return ERROR_FAIL;
++	}
++
++	/* Get QSPI controller register map base address */
++	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], fslqspi_info->base);
++
++	bank->driver_priv = fslqspi_info;
++
++	return ERROR_OK;
++}	/* fslqspi_flash_bank_command */
++
++
++COMMAND_HANDLER(fslqspi_endian)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank;
++	const char* const endian[] = { "BE64", "LE32", "BE32", "LE64" };
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++
++		if (CMD_ARGC > 1) {
++			switch(CMD_ARGV[1][0] + CMD_ARGV[1][2]) {
++			case 0x75: /* BE32 */
++				fslqspi_info->endian = MCR_END_CFG_BE32;
++				break;
++
++			case 0x78: /* BE64 */
++				fslqspi_info->endian = MCR_END_CFG_BE64;
++				break;
++
++			case 0x7f: /* LE32 */
++				fslqspi_info->endian = MCR_END_CFG_LE32;
++				break;
++
++			case 0x82: /* LE64 */
++				fslqspi_info->endian = MCR_END_CFG_LE64;
++				break;
++			}
++		}
++
++		LOG_USER("endian: %s", endian[(fslqspi_info->endian >> 2) & 0x03]);
++
++		return ERROR_OK;
++	} while (0);
++
++	return ERROR_FAIL;
++}	/* fslqspi_endian */
++
++
++COMMAND_HANDLER(fslqspi_read_register)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank;
++	struct target *target;
++	uint32_t rbsr, mcr, reg, addr, eaddr = 0, i;
++	int ret = ERROR_FAIL;
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++		target = bank->target;
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (CMD_ARGC < 2) {
++			LOG_ERROR("%s", cmd->current->usage);
++			ret = ERROR_COMMAND_ARGUMENT_INVALID;
++			break;
++		}
++
++		if (sscanf(CMD_ARGV[1], "0x%x", &addr) != 1
++		    && sscanf(CMD_ARGV[1], "%d", &addr) != 1)
++			break;
++
++		if (CMD_ARGC > 2 && sscanf(CMD_ARGV[2], "0x%x", &eaddr) != 1
++		    && sscanf(CMD_ARGV[2], "%d", &eaddr) != 1)
++			break;
++
++		if (target_read_u32(target, PBR_MCR, &mcr))
++			break;
++
++		if (target_write_u32(target, PBR_MCR, mcr | htobe32(MCR_CLR_RXF)))
++			break;
++
++		reg = addr;
++
++		do {
++			if (target_write_u32(target, PBR_SFAR,
++			    htobe32(fslqspi_info->base + reg++)))
++				break;
++
++			if (target_write_u32(target, PBR_IPCR,
++			    htobe32(IPCR_SEQID(SEQID_READ_ANY_REG) | 1)))
++				break;
++
++			if (fslqspi_wait_status(target, SR_BUSY, 0,
++			    QSPI_STATUS_TIMEOUT) != 0)
++				break;
++
++		} while(eaddr != 0 && reg <= eaddr);
++
++		if (target_read_u32(target, PBR_RBSR, &rbsr))
++			break;
++
++		for (i = 0; i < RBSR_RDBFL(be32toh(rbsr)); i++) {
++
++			if (target_read_u32(target, PBR_RBDRn + i * 4, &reg))
++				break;
++
++			LOG_USER("[0x%.8x] 0x%.2x", addr++, reg);
++		}
++
++		if (target_read_u32(target, PBR_MCR, &mcr))
++			break;
++
++		if (target_write_u32(target, PBR_MCR, mcr | htobe32(MCR_CLR_RXF)))
++			break;
++
++		ret = ERROR_OK;
++	} while (0);
++
++	return ret;
++}	/* fslqspi_dump_register */
++
++
++COMMAND_HANDLER(fslqspi_write_register)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank;
++	struct target *target = NULL;
++	uint32_t addr, value, mcr = 0;
++	int ret = ERROR_FAIL;
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++		target = bank->target;
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (CMD_ARGC < 3) {
++			LOG_ERROR("%s", cmd->current->usage);
++			ret = ERROR_COMMAND_ARGUMENT_INVALID;
++			break;
++		}
++
++		if ((sscanf(CMD_ARGV[1], "0x%x", &addr) != 1
++		    && sscanf(CMD_ARGV[1], "%d", &addr) != 1)
++		    || (sscanf(CMD_ARGV[2], "0x%x", &value) != 1
++		    && sscanf(CMD_ARGV[2], "%d", &value) != 1))
++			break;
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		if (fslqspi_write_enable(bank))
++			break;
++
++		if (target_write_u32(target, PBR_SFAR,
++		    htobe32(fslqspi_info->base + addr)))
++			break;
++
++		if (target_write_u32(target, PBR_TBDR, htobe32(value)))
++			break;
++
++		if (target_write_u32(target, PBR_IPCR,
++		    htobe32(IPCR_SEQID(SEQID_WRITE_ANY_REG) | 1)))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0, QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		ret = fslqspi_wait_target_status(bank);
++
++	} while (0);
++
++	if (target != NULL && mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_write_register */
++
++
++static const struct command_registration fslqspi_exec_command_handlers[] = {
++	{
++		.name = "endian",
++		.handler = fslqspi_endian,
++		.mode = COMMAND_EXEC,
++		.usage = "endian <bank> [LE32|LE64|BE32|BE64]",
++		.help = "force endian for read and write data (default is host byte order)"
++	},{
++		.name = "read_register",
++		.handler = fslqspi_read_register,
++		.mode = COMMAND_EXEC,
++		.usage = "read_register <bank> <addr> [end addr]",
++		.help = "read device register at addr or from addr to end addr"
++	},{
++		.name = "write_register",
++		.handler = fslqspi_write_register,
++		.mode = COMMAND_EXEC,
++		.usage = "write_register <bank> <address> <value>",
++		.help = "write to device register"
++	},
++	COMMAND_REGISTRATION_DONE
++};
++
++
++static const struct command_registration fslqspi_command_handlers[] = {
++	{
++		.name = "fslqspi",
++		.mode = COMMAND_ANY,
++		.help = "LS1012A platform flash command group",
++		.usage = "",
++		.chain = fslqspi_exec_command_handlers
++	},
++	COMMAND_REGISTRATION_DONE
++};
++
++
++struct flash_driver fslqspi_flash = {
++	.name = "fslqspi",
++	.usage = "",
++	.flash_bank_command = fslqspi_flash_bank_command,
++	.erase = fslqspi_flash_erase,
++	.protect = fslqspi_protect,
++	.write = fslqspi_flash_write,
++	.read = fslqspi_flash_read,
++	.probe = fslqspi_probe,
++	.auto_probe = fslqspi_auto_probe,
++	.erase_check = fslqspi_flash_erase_check,
++	.protect_check = fslqspi_protect_check,
++	.info = fslqspi_get_info,
++	.commands = fslqspi_command_handlers,
++};
+diff --git a/src/flash/nor/spi.c b/src/flash/nor/spi.c
+index 6501fbc..37c2908 100644
+--- a/src/flash/nor/spi.c
++++ b/src/flash/nor/spi.c
+@@ -54,6 +54,7 @@ const struct flash_device flash_devices[] = {
+ 	FLASH_ID("sp s25fl164k",   0xd8, 0xc7, 0x00174001, 0x100, 0x10000, 0x800000),
+ 	FLASH_ID("sp s25fl128",    0xd8, 0xc7, 0x00182001, 0x100, 0x10000, 0x1000000),
+ 	FLASH_ID("sp s25fl256",    0xd8, 0xc7, 0x00190201, 0x100, 0x10000, 0x2000000),
++	FLASH_ID("sp s25fs512s",   0xd8, 0xc7, 0x00200201, 0x100, 0x40000, 0x4000000),
+ 	FLASH_ID("atmel 25f512",   0x52, 0xc7, 0x0065001f, 0x80,  0x8000,  0x10000),
+ 	FLASH_ID("atmel 25f1024",  0x52, 0x62, 0x0060001f, 0x100, 0x8000,  0x20000),
+ 	FLASH_ID("atmel 25f2048",  0x52, 0x62, 0x0063001f, 0x100, 0x10000, 0x40000),
+@@ -78,5 +79,8 @@ const struct flash_device flash_devices[] = {
+ 	FLASH_ID("gd gd25q16c",    0xd8, 0xc7, 0x001540c8, 0x100, 0x10000, 0x200000),
+ 	FLASH_ID("gd gd25q32c",    0xd8, 0xc7, 0x001640c8, 0x100, 0x10000, 0x400000),
+ 	FLASH_ID("gd gd25q128c",   0xd8, 0xc7, 0x001840c8, 0x100, 0x10000, 0x1000000),
++	FLASH_ID("issi 25wp32",    0xd8, 0xc7, 0x0016709d, 0x100, 0x10000, 0x400000),
++	FLASH_ID("issi 25wp64",    0xd8, 0xc7, 0x0017709d, 0x100, 0x10000, 0x800000),
++	FLASH_ID("issi 25wp128",   0xd8, 0xc7, 0x0018709d, 0x100, 0x10000, 0x1000000),
+ 	FLASH_ID(NULL,             0,    0,	   0,          0,     0,       0)
+ };

@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:${THISDIR}/files:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:${THISDIR}/${P}:"
 
 INITRAMFS_IMAGE = "ls1012ananofw-initrd"
 

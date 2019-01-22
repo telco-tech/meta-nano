@@ -1,8 +1,8 @@
 diff --git a/drivers/mtd/spi-nor/spi-nor.c b/drivers/mtd/spi-nor/spi-nor.c
-index a46b9bb..edb66da 100644
+index a7680fbbeef0..314be074dd5a 100644
 --- a/drivers/mtd/spi-nor/spi-nor.c
 +++ b/drivers/mtd/spi-nor/spi-nor.c
-@@ -1017,6 +1017,9 @@ static const struct flash_info spi_nor_ids[] = {
+@@ -1005,6 +1005,9 @@ static const struct flash_info spi_nor_ids[] = {
  
  	/* ISSI */
  	{ "is25cd512", INFO(0x7f9d20, 0, 32 * 1024,   2, SECT_4K) },

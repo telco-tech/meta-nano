@@ -1,8 +1,8 @@
 diff --git a/lib/efi_loader/efi_disk.c b/lib/efi_loader/efi_disk.c
-index 39e602a..205d09c 100644
+index 825a6d8..b2003e3 100644
 --- a/lib/efi_loader/efi_disk.c
 +++ b/lib/efi_loader/efi_disk.c
-@@ -330,6 +330,9 @@ int efi_disk_register(void)
+@@ -410,6 +410,9 @@ efi_status_t efi_disk_register(void)
  			if (desc->type == DEV_TYPE_UNKNOWN)
  				continue;
  
@@ -11,4 +11,4 @@ index 39e602a..205d09c 100644
 +
  			snprintf(devname, sizeof(devname), "%s%d",
  				 if_typename, i);
- 			efi_disk_add_dev(devname, if_typename, desc, i, 0);
+ 

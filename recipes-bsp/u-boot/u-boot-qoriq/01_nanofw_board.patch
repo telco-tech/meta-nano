@@ -1,11 +1,11 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 31688ff..6c98921 100644
+index c7493e41fe..a9552143cd 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -886,6 +886,13 @@ config TARGET_LS1012AFRDM
+@@ -991,6 +991,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
-
+ 
 +config TARGET_LS1012ANANOFW
 +	bool "Support ls1012ananofw"
 +	select ARCH_LS1012A
@@ -16,20 +16,20 @@ index 31688ff..6c98921 100644
  config TARGET_LS1088ARDB
  	bool "Support ls1088ardb"
  	select ARCH_LS1088A
-@@ -1185,6 +1192,7 @@ source "board/freescale/ls1046ardb/Kconfig"
+@@ -1320,6 +1327,7 @@ source "board/freescale/ls1046ardb/Kconfig"
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
 +source "board/freescale/ls1012ananofw/Kconfig"
- source "board/freescale/mx23evk/Kconfig"
- source "board/freescale/mx25pdk/Kconfig"
- source "board/freescale/mx28evk/Kconfig"
+ source "board/freescale/ls1012afrx/Kconfig"
+ source "board/freescale/ls1012afrwy/Kconfig"
+ source "board/freescale/mx31ads/Kconfig"
 diff --git a/arch/arm/cpu/armv8/Kconfig b/arch/arm/cpu/armv8/Kconfig
-index 12aba9d..87a75bc 100644
+index 22d2f29548..da60bd6e1e 100644
 --- a/arch/arm/cpu/armv8/Kconfig
 +++ b/arch/arm/cpu/armv8/Kconfig
-@@ -92,7 +92,7 @@ config PSCI_RESET
- 		   !TARGET_LS1012ARDB && !TARGET_LS1012AFRDM && \
+@@ -94,7 +94,7 @@ config PSCI_RESET
+ 		   !TARGET_LS1012AFRWY && \
  		   !TARGET_LS1043ARDB && !TARGET_LS1043AQDS && \
  		   !TARGET_LS1046ARDB && !TARGET_LS1046AQDS && \
 -		   !TARGET_LS2081ARDB && \
@@ -39,7 +39,7 @@ index 12aba9d..87a75bc 100644
  	  Most armv8 systems have PSCI support enabled in EL3, either through
 diff --git a/arch/arm/dts/fsl-ls1012a-nanofw.dts b/arch/arm/dts/fsl-ls1012a-nanofw.dts
 new file mode 100644
-index 0000000..54af75a
+index 0000000000..54af75a8c3
 --- /dev/null
 +++ b/arch/arm/dts/fsl-ls1012a-nanofw.dts
 @@ -0,0 +1,40 @@
@@ -85,10 +85,10 @@ index 0000000..54af75a
 +};
 diff --git a/board/freescale/ls1012ananofw/Kconfig b/board/freescale/ls1012ananofw/Kconfig
 new file mode 100644
-index 0000000..c0dffa1
+index 0000000000..a1ac24fb48
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/Kconfig
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,23 @@
 +if TARGET_LS1012ANANOFW
 +
 +config SYS_BOARD
@@ -103,12 +103,18 @@ index 0000000..c0dffa1
 +config SYS_CONFIG_NAME
 +	default "ls1012ananofw"
 +
-+source "board/freescale/common/Kconfig"
++config SYS_LS_PFE_FW_ADDR
++	hex "Flash address of PFE firmware"
++	default 0x40a00000
++
++config SYS_LS_PPA_FW_ADDR
++	hex "PPA Firmware Addr"
++	default 0x40400000
 +
 +endif
 diff --git a/board/freescale/ls1012ananofw/MAINTAINERS b/board/freescale/ls1012ananofw/MAINTAINERS
 new file mode 100644
-index 0000000..c927177
+index 0000000000..c9271778c2
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/MAINTAINERS
 @@ -0,0 +1,6 @@
@@ -120,7 +126,7 @@ index 0000000..c927177
 +F:	configs/ls1012ananofw_qspi_defconfig
 diff --git a/board/freescale/ls1012ananofw/Makefile b/board/freescale/ls1012ananofw/Makefile
 new file mode 100644
-index 0000000..50bc61d
+index 0000000000..50bc61de11
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/Makefile
 @@ -0,0 +1,8 @@
@@ -134,7 +140,7 @@ index 0000000..50bc61d
 +obj-y += eth.o
 diff --git a/board/freescale/ls1012ananofw/README b/board/freescale/ls1012ananofw/README
 new file mode 100644
-index 0000000..3c04d84
+index 0000000000..3c04d84ada
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/README
 @@ -0,0 +1,7 @@
@@ -147,10 +153,10 @@ index 0000000..3c04d84
 +
 diff --git a/board/freescale/ls1012ananofw/eth.c b/board/freescale/ls1012ananofw/eth.c
 new file mode 100644
-index 0000000..64b0d9e
+index 0000000000..9ea275ea70
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/eth.c
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,91 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
 + * Copyright 2017 NXP
@@ -159,56 +165,92 @@ index 0000000..64b0d9e
 + */
 +
 +#include <common.h>
++#include <dm.h>
 +#include <asm/io.h>
 +#include <netdev.h>
 +#include <fm_eth.h>
 +#include <fsl_mdio.h>
 +#include <malloc.h>
++#include <asm/types.h>
 +#include <fsl_dtsec.h>
 +#include <asm/arch/soc.h>
 +#include <asm/arch-fsl-layerscape/config.h>
-+#include <asm/arch/fsl_serdes.h>
-+
-+#include <pfe_eth/pfe_eth.h>
 +#include <asm/arch-fsl-layerscape/immap_lsch2.h>
++#include <asm/arch/fsl_serdes.h>
++#include <net/pfe_eth/pfe_eth.h>
++#include <dm/platform_data/pfe_dm_eth.h>
 +#include <i2c.h>
 +
 +#define DEFAULT_PFE_MDIO_NAME "PFE_MDIO"
 +
-+int board_eth_init(bd_t *bis)
++int pfe_eth_board_init(struct udevice *dev)
 +{
 +#ifdef CONFIG_FSL_PFE
 +	struct mii_dev *bus;
-+	struct mdio_info mac1_mdio_info;
++	struct pfe_mdio_info mac1_mdio_info;
++	struct pfe_eth_dev *priv = dev_get_priv(dev);
 +
 +	init_pfe_scfg_dcfg_regs();
 +
 +	mac1_mdio_info.reg_base = (void *)EMAC1_BASE_ADDR;
 +	mac1_mdio_info.name = DEFAULT_PFE_MDIO_NAME;
 +
-+	bus = ls1012a_mdio_init(&mac1_mdio_info);
++	bus = pfe_mdio_init(&mac1_mdio_info);
 +	if (!bus) {
 +		printf("Failed to register mdio\n");
 +		return -1;
 +	}
 +
-+	/* MAC1 */
-+	ls1012a_set_mdio(0, miiphy_get_dev_by_name(DEFAULT_PFE_MDIO_NAME));
-+	ls1012a_set_phy_address_mode(0, EMAC1_PHY_ADDR,
++	
++	pfe_set_mdio(priv->gemac_port,
++	    miiphy_get_dev_by_name(DEFAULT_PFE_MDIO_NAME));
++	
++	if (!priv->gemac_port) /* MAC1 */
++		pfe_set_phy_address_mode(0, CONFIG_PFE_EMAC1_PHY_ADDR,
 +				     PHY_INTERFACE_MODE_SGMII);
-+
-+	/* MAC2 */
-+	ls1012a_set_mdio(1, miiphy_get_dev_by_name(DEFAULT_PFE_MDIO_NAME));
-+	ls1012a_set_phy_address_mode(1, EMAC2_PHY_ADDR,
++	else /* MAC2 */
++		pfe_set_phy_address_mode(1, CONFIG_PFE_EMAC2_PHY_ADDR,
 +				     PHY_INTERFACE_MODE_RGMII_TXID);
-+
-+	cpu_eth_init(bis);
 +#endif
-+	return pci_eth_init(bis);
++	return 0;
 +}
++
++static struct pfe_eth_pdata pfe_pdata0 = {
++	.pfe_eth_pdata_mac = {
++		.iobase = (phys_addr_t)EMAC1_BASE_ADDR,
++		.phy_interface = 0,
++	},
++
++	.pfe_ddr_addr = {
++		.ddr_pfe_baseaddr = (void *)CONFIG_DDR_PFE_BASEADDR,
++		.ddr_pfe_phys_baseaddr = CONFIG_DDR_PFE_PHYS_BASEADDR,
++	},
++};
++
++static struct pfe_eth_pdata pfe_pdata1 = {
++	.pfe_eth_pdata_mac = {
++		.iobase = (phys_addr_t)EMAC2_BASE_ADDR,
++		.phy_interface = 1,
++	},
++
++	.pfe_ddr_addr = {
++		.ddr_pfe_baseaddr = (void *)CONFIG_DDR_PFE_BASEADDR,
++		.ddr_pfe_phys_baseaddr = CONFIG_DDR_PFE_PHYS_BASEADDR,
++	},
++};
++
++U_BOOT_DEVICE(ls1012a_pfe0) = {
++	.name = "pfe_eth",
++	.platdata = &pfe_pdata0,
++};
++
++U_BOOT_DEVICE(ls1012a_pfe1) = {
++	.name = "pfe_eth",
++	.platdata = &pfe_pdata1,
++};
 diff --git a/board/freescale/ls1012ananofw/ls1012ananofw.c b/board/freescale/ls1012ananofw/ls1012ananofw.c
 new file mode 100644
-index 0000000..f98b48e
+index 0000000000..f98b48e9a8
 --- /dev/null
 +++ b/board/freescale/ls1012ananofw/ls1012ananofw.c
 @@ -0,0 +1,149 @@
@@ -363,12 +405,13 @@ index 0000000..f98b48e
 +}
 diff --git a/configs/ls1012ananofw_qspi_defconfig b/configs/ls1012ananofw_qspi_defconfig
 new file mode 100644
-index 0000000..9536a00
+index 0000000000..eb307ac49e
 --- /dev/null
 +++ b/configs/ls1012ananofw_qspi_defconfig
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,55 @@
 +CONFIG_ARM=y
 +CONFIG_TARGET_LS1012ANANOFW=y
++CONFIG_SYS_TEXT_BASE=0x40100000
 +CONFIG_FSL_LS_PPA=y
 +CONFIG_QSPI_AHB_INIT=y
 +CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nanofw"
@@ -402,6 +445,7 @@ index 0000000..9536a00
 +# CONFIG_DM_MMC_OPS is not set
 +CONFIG_DM_SPI_FLASH=y
 +CONFIG_SPI_FLASH=y
++CONFIG_DM_ETH=y
 +CONFIG_NETDEVICES=y
 +# CONFIG_E1000 is not set
 +CONFIG_FSL_PFE=y
@@ -422,10 +466,10 @@ index 0000000..9536a00
 +CONFIG_EFI_LOADER=y
 diff --git a/include/configs/ls1012ananofw.h b/include/configs/ls1012ananofw.h
 new file mode 100644
-index 0000000..55f914f
+index 0000000000..e7391bce84
 --- /dev/null
 +++ b/include/configs/ls1012ananofw.h
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,116 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -455,7 +499,6 @@ index 0000000..55f914f
 +#ifdef CONFIG_FSL_PFE
 +#define EMAC1_PHY_ADDR          0x2
 +#define EMAC2_PHY_ADDR          0x1
-+#define CONFIG_PHYLIB
 +#define CONFIG_PHY_TI
 +#endif
 +
@@ -469,16 +512,11 @@ index 0000000..55f914f
 +#define CONFIG_SYS_MEMTEST_START	0x80000000
 +#define CONFIG_SYS_MEMTEST_END		0x9fffffff
 +
-+/*
-+* USB
-+*/
-+#ifdef CONFIG_USB
-+#define CONFIG_HAS_FSL_XHCI_USB
 +
-+#ifdef CONFIG_HAS_FSL_XHCI_USB
-+#define CONFIG_USB_XHCI_FSL
-+#define CONFIG_USB_MAX_CONTROLLER_COUNT         1
-+#endif
++#ifndef CONFIG_SPL_BUILD
++#undef BOOT_TARGET_DEVICES
++#define BOOT_TARGET_DEVICES(func) \
++	func(USB, usb, 0)
 +#endif
 +
 +/*
@@ -486,32 +524,6 @@ index 0000000..55f914f
 + */
 +
 +#define I2C_KSZ_ADDR		0x5f
-+
-+/*  MMC  */
-+#ifdef CONFIG_MMC
-+#define CONFIG_FSL_ESDHC
-+#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
-+#endif
-+
-+/* SATA */
-+#define CONFIG_LIBATA
-+#define	CONFIG_SCSI
-+#define CONFIG_SCSI_AHCI
-+#define CONFIG_SCSI_AHCI_PLAT
-+#define CONFIG_CMD_SCSI
-+
-+#define CONFIG_SYS_SATA				AHCI_BASE_ADDR
-+
-+#define CONFIG_SYS_SCSI_MAX_SCSI_ID		1
-+#define CONFIG_SYS_SCSI_MAX_LUN			1
-+#define CONFIG_SYS_SCSI_MAX_DEVICE		(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-+						CONFIG_SYS_SCSI_MAX_LUN)
-+
-+#define CONFIG_PCIE1		/* PCIE controller 1 */
-+
-+#define CONFIG_NET_MULTI
-+#define CONFIG_PCI_SCAN_SHOW
-+#define CONFIG_CMD_PCI
 +
 +#undef CONFIG_EXTRA_ENV_SETTINGS
 +#define CONFIG_EXTRA_ENV_SETTINGS		\
@@ -573,6 +585,4 @@ index 0000000..55f914f
 +			   "env exists secureboot && esbc_halt;"
 +#endif
 +
-+#include <asm/fsl_secure_boot.h>
-+
-+#endif /* __LS1012ARDB_H__ */
++#endif /* __LS1012ANANOFW_H__ */
