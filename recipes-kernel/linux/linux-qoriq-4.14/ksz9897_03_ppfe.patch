@@ -101,7 +101,7 @@ index 000000000000..dd669633b22e
 +
 +#endif	/* _KSZ_9897_H_ */
 diff --git a/drivers/staging/fsl_ppfe/pfe_eth.c b/drivers/staging/fsl_ppfe/pfe_eth.c
-index 968db1263411..e6471cbdd157 100644
+index c1a3f09cddac..ad9b93cae75f 100644
 --- a/drivers/staging/fsl_ppfe/pfe_eth.c
 +++ b/drivers/staging/fsl_ppfe/pfe_eth.c
 @@ -35,6 +35,7 @@
@@ -112,9 +112,9 @@ index 968db1263411..e6471cbdd157 100644
  
  #include <net/ip.h>
  #include <net/sock.h>
-@@ -52,6 +53,10 @@
- #include "pfe_mod.h"
- #include "pfe_eth.h"
+@@ -60,6 +61,10 @@
+ 
+ bool pfe_errata_a010897;
  
 +#ifdef CONFIG_PPFE_KSZ9897
 +#include "ksz_9897.h"
@@ -123,7 +123,7 @@ index 968db1263411..e6471cbdd157 100644
  static void *cbus_emac_base[3];
  static void *cbus_gpi_base[3];
  
-@@ -943,7 +948,6 @@ static int pfe_eth_mdio_init(struct pfe_eth_priv_s *priv,
+@@ -981,7 +986,6 @@ static int pfe_eth_mdio_init(struct pfe_eth_priv_s *priv,
  	snprintf(bus->id, MII_BUS_ID_SIZE, "ls1012a-%x", priv->id);
  	bus->priv = priv;
  
@@ -131,7 +131,7 @@ index 968db1263411..e6471cbdd157 100644
  	priv->mdc_div = minfo->mdc_div;
  
  	if (!priv->mdc_div)
-@@ -953,9 +957,7 @@ static int pfe_eth_mdio_init(struct pfe_eth_priv_s *priv,
+@@ -991,9 +995,7 @@ static int pfe_eth_mdio_init(struct pfe_eth_priv_s *priv,
  
  	bus->parent = priv->pfe->dev;
  
@@ -142,7 +142,7 @@ index 968db1263411..e6471cbdd157 100644
  	if (rc) {
  		netdev_err(priv->ndev, "mdiobus_register(%s) failed\n",
  			   bus->name);
-@@ -1215,14 +1217,27 @@ static int pfe_phy_init(struct net_device *ndev)
+@@ -1266,6 +1268,12 @@ static int pfe_phy_init(struct net_device *ndev)
  	char phy_id[MII_BUS_ID_SIZE + 3];
  	char bus_id[MII_BUS_ID_SIZE];
  	phy_interface_t interface;
@@ -150,10 +150,12 @@ index 968db1263411..e6471cbdd157 100644
 +	u32 bid = 0;
 +	u32 pid = priv->einfo->phy_id;
 +#ifdef CONFIG_PPFE_KSZ9897
-+       struct ksz_device *ksz = priv->einfo->ksz;
++	struct ksz_device *ksz = priv->einfo->ksz;
 +#endif
+ 	struct device_node *phy_node;
+ 	int rc;
  
- 	priv->oldlink = 0;
+@@ -1273,9 +1281,16 @@ static int pfe_phy_init(struct net_device *ndev)
  	priv->oldspeed = 0;
  	priv->oldduplex = -1;
  
@@ -173,7 +175,7 @@ index 968db1263411..e6471cbdd157 100644
  
  	netif_info(priv, drv, ndev, "%s: %s\n", __func__, phy_id);
  	interface = priv->einfo->mii_config;
-@@ -1244,6 +1259,12 @@ static int pfe_phy_init(struct net_device *ndev)
+@@ -1297,6 +1312,12 @@ static int pfe_phy_init(struct net_device *ndev)
  	priv->oldlink = 0;
  	priv->oldspeed = 0;
  	priv->oldduplex = -1;
@@ -184,19 +186,20 @@ index 968db1263411..e6471cbdd157 100644
 +#endif
 +
  	pr_info("%s interface %x\n", __func__, interface);
- 	phydev = phy_connect(ndev, phy_id, &pfe_eth_adjust_link, interface);
  
+ 	if (of_phy_is_fixed_link(priv->phy_node)) {
 diff --git a/drivers/staging/fsl_ppfe/pfe_eth.h b/drivers/staging/fsl_ppfe/pfe_eth.h
-index 88f6cd87748f..7d14887887c7 100644
+index 64b33485be98..4807c583cf58 100644
 --- a/drivers/staging/fsl_ppfe/pfe_eth.h
 +++ b/drivers/staging/fsl_ppfe/pfe_eth.h
-@@ -61,12 +61,15 @@ struct ls1012a_eth_platform_data {
+@@ -61,13 +61,16 @@ struct ls1012a_eth_platform_data {
  	u32 phy_id;
  	u32 mdio_muxval;
  	u8 mac_addr[ETH_ALEN];
 +#ifdef CONFIG_PPFE_KSZ9897
 +	struct ksz_device *ksz;
 +#endif
+ 	struct device_node	*phy_node;
  };
  
  struct ls1012a_mdio_platform_data {
@@ -208,10 +211,10 @@ index 88f6cd87748f..7d14887887c7 100644
  };
  
 diff --git a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-index 7557650f4156..af6a502ade52 100644
+index 56cb02e61221..548289d17fd9 100644
 --- a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 +++ b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-@@ -28,6 +28,10 @@
+@@ -30,6 +30,10 @@
  
  #include "pfe_mod.h"
  
@@ -222,7 +225,7 @@ index 7557650f4156..af6a502ade52 100644
  struct ls1012a_pfe_platform_data pfe_platform_data;
  
  static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
-@@ -35,7 +39,7 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
+@@ -37,7 +41,7 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
  					struct ls1012a_pfe_platform_data
  					*pdata)
  {
@@ -231,7 +234,7 @@ index 7557650f4156..af6a502ade52 100644
  	int size;
  	int ii = 0, phy_id = 0;
  	const u32 *addr;
-@@ -85,7 +89,6 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
+@@ -87,7 +91,6 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
  	} else {
  		phy_id = be32_to_cpup(addr);
  		pdata->ls1012a_eth_pdata[port].phy_id = phy_id;
@@ -239,7 +242,7 @@ index 7557650f4156..af6a502ade52 100644
  	}
  
  	addr = of_get_property(gem, "fsl,mdio-mux-val", &size);
-@@ -110,9 +113,9 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
+@@ -113,9 +116,9 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
  	if (pdata->ls1012a_eth_pdata[port].phy_flags & GEMAC_NO_PHY)
  		goto done;
  
@@ -251,7 +254,7 @@ index 7557650f4156..af6a502ade52 100644
  
  	if (!addr)
  		pr_err("%s:%d Invalid phy enable flag....\n",
-@@ -122,6 +125,12 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
+@@ -125,6 +128,12 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
  
  	pdata->ls1012a_mdio_pdata[port].irq[0] = PHY_POLL;
  
@@ -262,5 +265,5 @@ index 7557650f4156..af6a502ade52 100644
 +#endif
 +
  done:
- 
- 	return 0;
+ 	if (of_phy_is_fixed_link(gem))
+ 		pdata->ls1012a_eth_pdata[port].phy_node = of_node_get(gem);

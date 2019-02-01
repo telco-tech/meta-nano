@@ -1,8 +1,8 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_eth.h b/drivers/staging/fsl_ppfe/pfe_eth.h
-index 721bef3ef53b..88f6cd87748f 100644
+index 59b67cf84429..64b33485be98 100644
 --- a/drivers/staging/fsl_ppfe/pfe_eth.h
 +++ b/drivers/staging/fsl_ppfe/pfe_eth.h
-@@ -172,7 +172,7 @@ struct  pfe_eth_priv_s {
+@@ -175,7 +175,7 @@ struct  pfe_eth_priv_s {
  };
  
  struct pfe_eth {

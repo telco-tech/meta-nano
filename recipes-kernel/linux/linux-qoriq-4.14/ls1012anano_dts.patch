@@ -1,8 +1,8 @@
-diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
+diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
 new file mode 100644
 index 0000000..e310f57
 --- /dev/null
-+++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nanofw.dts
++++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
 @@ -0,0 +1,208 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
@@ -55,7 +55,7 @@ index 0000000..e310f57
 +
 +/ {
 +	model = "LS1012A NanoFW Board";
-+	compatible = "fsl,ls1012a-nanofw", "fsl,ls1012a";
++	compatible = "fsl,ls1012a-nano", "fsl,ls1012a";
 +
 +	aliases {
 +		serial0 = &duart0;
@@ -143,7 +143,7 @@ index 0000000..e310f57
 +
 +	/* NOTE
 +	 * u-boot may change the setup for existing hardware
-+	 * see ls1012ananofw.c board setup file (u-boot)
++	 * see ls1012anano.c board setup file (u-boot)
 +	 */
 +
 +	ethernet@0 {

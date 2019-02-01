@@ -1,13 +1,13 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index c7493e41fe..a9552143cd 100644
+index a76678d5d8..2263740add 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -991,6 +991,13 @@ config TARGET_LS1012AFRDM
+@@ -1120,6 +1120,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
  
-+config TARGET_LS1012ANANOFW
-+	bool "Support ls1012ananofw"
++config TARGET_LS1012ANANO
++	bool "Support ls1012anano"
 +	select ARCH_LS1012A
 +	select ARM64
 +	help
@@ -16,32 +16,32 @@ index c7493e41fe..a9552143cd 100644
  config TARGET_LS1088ARDB
  	bool "Support ls1088ardb"
  	select ARCH_LS1088A
-@@ -1320,6 +1327,7 @@ source "board/freescale/ls1046ardb/Kconfig"
+@@ -1492,6 +1499,7 @@ source "board/freescale/ls1046ardb/Kconfig"
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
-+source "board/freescale/ls1012ananofw/Kconfig"
- source "board/freescale/ls1012afrx/Kconfig"
- source "board/freescale/ls1012afrwy/Kconfig"
- source "board/freescale/mx31ads/Kconfig"
++source "board/freescale/ls1012anano/Kconfig"
+ source "board/freescale/lx2160a/Kconfig"
+ source "board/freescale/mx35pdk/Kconfig"
+ source "board/freescale/s32v234evb/Kconfig"
 diff --git a/arch/arm/cpu/armv8/Kconfig b/arch/arm/cpu/armv8/Kconfig
-index 22d2f29548..da60bd6e1e 100644
+index aac3aebb44..fcadb897a3 100644
 --- a/arch/arm/cpu/armv8/Kconfig
 +++ b/arch/arm/cpu/armv8/Kconfig
-@@ -94,7 +94,7 @@ config PSCI_RESET
- 		   !TARGET_LS1012AFRWY && \
+@@ -102,7 +102,7 @@ config PSCI_RESET
+ 		   !TARGET_LS1088ARDB && !TARGET_LS1088AQDS && \
+ 		   !TARGET_LS1012ARDB && !TARGET_LS1012AFRDM && \
+ 		   !TARGET_LS1012A2G5RDB && !TARGET_LS1012AQDS && \
+-		   !TARGET_LS1012AFRWY && \
++		   !TARGET_LS1012AFRWY && !TARGET_LS1012ANANO && \
  		   !TARGET_LS1043ARDB && !TARGET_LS1043AQDS && \
  		   !TARGET_LS1046ARDB && !TARGET_LS1046AQDS && \
--		   !TARGET_LS2081ARDB && \
-+		   !TARGET_LS2081ARDB && !TARGET_LS1012ANANOFW && \
- 		   !ARCH_UNIPHIER && !TARGET_S32V234EVB
- 	help
- 	  Most armv8 systems have PSCI support enabled in EL3, either through
-diff --git a/arch/arm/dts/fsl-ls1012a-nanofw.dts b/arch/arm/dts/fsl-ls1012a-nanofw.dts
+ 		   !TARGET_LS2081ARDB && !TARGET_LX2160ARDB && \
+diff --git a/arch/arm/dts/fsl-ls1012a-nano.dts b/arch/arm/dts/fsl-ls1012a-nano.dts
 new file mode 100644
 index 0000000000..54af75a8c3
 --- /dev/null
-+++ b/arch/arm/dts/fsl-ls1012a-nanofw.dts
++++ b/arch/arm/dts/fsl-ls1012a-nano.dts
 @@ -0,0 +1,40 @@
 +/*
 + * Device Tree Include file for Freescale Layerscape-1012A family SoC.
@@ -83,16 +83,16 @@ index 0000000000..54af75a8c3
 +&duart0 {
 +	status = "okay";
 +};
-diff --git a/board/freescale/ls1012ananofw/Kconfig b/board/freescale/ls1012ananofw/Kconfig
+diff --git a/board/freescale/ls1012anano/Kconfig b/board/freescale/ls1012anano/Kconfig
 new file mode 100644
-index 0000000000..a1ac24fb48
+index 0000000000..4b72b77ac6
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/Kconfig
++++ b/board/freescale/ls1012anano/Kconfig
 @@ -0,0 +1,23 @@
-+if TARGET_LS1012ANANOFW
++if TARGET_LS1012ANANO
 +
 +config SYS_BOARD
-+	default "ls1012ananofw"
++	default "ls1012anano"
 +
 +config SYS_VENDOR
 +	default "freescale"
@@ -101,7 +101,7 @@ index 0000000000..a1ac24fb48
 +	default "fsl-layerscape"
 +
 +config SYS_CONFIG_NAME
-+	default "ls1012ananofw"
++	default "ls1012anano"
 +
 +config SYS_LS_PFE_FW_ADDR
 +	hex "Flash address of PFE firmware"
@@ -112,23 +112,23 @@ index 0000000000..a1ac24fb48
 +	default 0x40400000
 +
 +endif
-diff --git a/board/freescale/ls1012ananofw/MAINTAINERS b/board/freescale/ls1012ananofw/MAINTAINERS
+diff --git a/board/freescale/ls1012anano/MAINTAINERS b/board/freescale/ls1012anano/MAINTAINERS
 new file mode 100644
-index 0000000000..c9271778c2
+index 0000000000..fcc293bff4
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/MAINTAINERS
++++ b/board/freescale/ls1012anano/MAINTAINERS
 @@ -0,0 +1,6 @@
-+LS1012ANANOFW BOARD
++LS1012ANANO BOARD
 +M:	Mario
 +S:	Maintained
-+F:	board/freescale/ls1012ananofw/
-+F:	include/configs/ls1012ananofw.h
-+F:	configs/ls1012ananofw_qspi_defconfig
-diff --git a/board/freescale/ls1012ananofw/Makefile b/board/freescale/ls1012ananofw/Makefile
++F:	board/freescale/ls1012anano/
++F:	include/configs/ls1012anano.h
++F:	configs/ls1012anano_qspi_defconfig
+diff --git a/board/freescale/ls1012anano/Makefile b/board/freescale/ls1012anano/Makefile
 new file mode 100644
-index 0000000000..50bc61de11
+index 0000000000..4ec60f9628
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/Makefile
++++ b/board/freescale/ls1012anano/Makefile
 @@ -0,0 +1,8 @@
 +#
 +# Copyright 2016 Freescale Semiconductor, Inc.
@@ -136,13 +136,13 @@ index 0000000000..50bc61de11
 +# SPDX-License-Identifier:      GPL-2.0+
 +#
 +
-+obj-y += ls1012ananofw.o
++obj-y += ls1012anano.o
 +obj-y += eth.o
-diff --git a/board/freescale/ls1012ananofw/README b/board/freescale/ls1012ananofw/README
+diff --git a/board/freescale/ls1012anano/README b/board/freescale/ls1012anano/README
 new file mode 100644
 index 0000000000..3c04d84ada
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/README
++++ b/board/freescale/ls1012anano/README
 @@ -0,0 +1,7 @@
 +
 +LS1012A SoC Overview
@@ -151,11 +151,11 @@ index 0000000000..3c04d84ada
 +SoC overview.
 +
 +
-diff --git a/board/freescale/ls1012ananofw/eth.c b/board/freescale/ls1012ananofw/eth.c
+diff --git a/board/freescale/ls1012anano/eth.c b/board/freescale/ls1012anano/eth.c
 new file mode 100644
 index 0000000000..9ea275ea70
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/eth.c
++++ b/board/freescale/ls1012anano/eth.c
 @@ -0,0 +1,91 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
@@ -248,11 +248,11 @@ index 0000000000..9ea275ea70
 +	.name = "pfe_eth",
 +	.platdata = &pfe_pdata1,
 +};
-diff --git a/board/freescale/ls1012ananofw/ls1012ananofw.c b/board/freescale/ls1012ananofw/ls1012ananofw.c
+diff --git a/board/freescale/ls1012anano/ls1012anano.c b/board/freescale/ls1012anano/ls1012anano.c
 new file mode 100644
 index 0000000000..f98b48e9a8
 --- /dev/null
-+++ b/board/freescale/ls1012ananofw/ls1012ananofw.c
++++ b/board/freescale/ls1012anano/ls1012anano.c
 @@ -0,0 +1,149 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
@@ -403,18 +403,18 @@ index 0000000000..f98b48e9a8
 +
 +	return 0;
 +}
-diff --git a/configs/ls1012ananofw_qspi_defconfig b/configs/ls1012ananofw_qspi_defconfig
+diff --git a/configs/ls1012anano_qspi_defconfig b/configs/ls1012anano_qspi_defconfig
 new file mode 100644
-index 0000000000..eb307ac49e
+index 0000000000..ea647be49e
 --- /dev/null
-+++ b/configs/ls1012ananofw_qspi_defconfig
++++ b/configs/ls1012anano_qspi_defconfig
 @@ -0,0 +1,55 @@
 +CONFIG_ARM=y
-+CONFIG_TARGET_LS1012ANANOFW=y
++CONFIG_TARGET_LS1012ANANO=y
 +CONFIG_SYS_TEXT_BASE=0x40100000
 +CONFIG_FSL_LS_PPA=y
 +CONFIG_QSPI_AHB_INIT=y
-+CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nanofw"
++CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nano"
 +# CONFIG_SYS_MALLOC_F is not set
 +CONFIG_FIT_VERBOSE=y
 +CONFIG_OF_BOARD_SETUP=y
@@ -464,11 +464,11 @@ index 0000000000..eb307ac49e
 +CONFIG_DISTRO_DEFAULTS=y
 +CONFIG_CMD_BOOTEFI=y
 +CONFIG_EFI_LOADER=y
-diff --git a/include/configs/ls1012ananofw.h b/include/configs/ls1012ananofw.h
+diff --git a/include/configs/ls1012anano.h b/include/configs/ls1012anano.h
 new file mode 100644
-index 0000000000..e7391bce84
+index 0000000000..af12a1a9db
 --- /dev/null
-+++ b/include/configs/ls1012ananofw.h
++++ b/include/configs/ls1012anano.h
 @@ -0,0 +1,116 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
@@ -476,8 +476,8 @@ index 0000000000..e7391bce84
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
 +
-+#ifndef __LS1012ANANOFW_H__
-+#define __LS1012ANANOFW_H__
++#ifndef __LS1012ANANO_H__
++#define __LS1012ANANO_H__
 +
 +#include "ls1012a_common.h"
 +
@@ -544,8 +544,8 @@ index 0000000000..e7391bce84
 +	"kernelheader_size=0x40000\0"		\
 +	"console=ttyS0,115200\0"		\
 +	BOOTENV					\
-+	"boot_scripts=ls1012ananofw_boot.scr\0"	\
-+	"boot_script_hdr=hdr_ls1012ananofw_bs.out\0"	\
++	"boot_scripts=ls1012anano_boot.scr\0"	\
++	"boot_script_hdr=hdr_ls1012anano_bs.out\0"	\
 +	"scan_dev_for_boot_part="		\
 +	     "part list ${devtype} ${devnum} devplist; "	\
 +	     "env exists devplist || setenv devplist 1; "	\
@@ -585,4 +585,4 @@ index 0000000000..e7391bce84
 +			   "env exists secureboot && esbc_halt;"
 +#endif
 +
-+#endif /* __LS1012ANANOFW_H__ */
++#endif /* __LS1012ANANO_H__ */

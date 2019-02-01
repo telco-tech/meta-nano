@@ -1,8 +1,8 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_eth.c b/drivers/staging/fsl_ppfe/pfe_eth.c
-index 265045fcb008..968db1263411 100644
+index 10ba88bfe833..c1a3f09cddac 100644
 --- a/drivers/staging/fsl_ppfe/pfe_eth.c
 +++ b/drivers/staging/fsl_ppfe/pfe_eth.c
-@@ -2320,7 +2320,7 @@ static int pfe_eth_init_one(struct pfe *pfe, int id)
+@@ -2398,7 +2398,7 @@ static int pfe_eth_init_one(struct pfe *pfe, int id)
  	/* Set the info in the priv to the current info */
  	priv->einfo = &einfo[id];
  	priv->EMAC_baseaddr = cbus_emac_base[id];
@@ -10,12 +10,12 @@ index 265045fcb008..968db1263411 100644
 +	priv->PHY_baseaddr = cbus_emac_base[id];
  	priv->GPI_baseaddr = cbus_gpi_base[id];
  
- #define HIF_GEMAC_TMUQ_BASE	6
+ 	spin_lock_init(&priv->lock);
 diff --git a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-index f3eb88de66a4..7557650f4156 100644
+index 5d54abdacd0f..56cb02e61221 100644
 --- a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 +++ b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-@@ -85,7 +85,7 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
+@@ -87,7 +87,7 @@ static int pfe_get_gemac_if_proprties(struct device_node *parent, int port, int
  	} else {
  		phy_id = be32_to_cpup(addr);
  		pdata->ls1012a_eth_pdata[port].phy_id = phy_id;
@@ -24,7 +24,7 @@ index f3eb88de66a4..7557650f4156 100644
  	}
  
  	addr = of_get_property(gem, "fsl,mdio-mux-val", &size);
-@@ -216,8 +216,6 @@ static int pfe_platform_probe(struct platform_device *pdev)
+@@ -221,8 +221,6 @@ static int pfe_platform_probe(struct platform_device *pdev)
  		goto err_prop;
  	}
  

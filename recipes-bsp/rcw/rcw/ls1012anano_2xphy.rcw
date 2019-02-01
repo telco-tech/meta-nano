@@ -3,4 +3,4 @@
 SRDS_PRTCL_S1=13576
 EC1_BASE=1
 
-#include "../ls1012ananofw.rcw"
+#include "../ls1012anano.rcw"

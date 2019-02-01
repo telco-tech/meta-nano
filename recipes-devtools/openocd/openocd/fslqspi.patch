@@ -1,10 +1,10 @@
 diff --git a/src/flash/nor/Makefile.am b/src/flash/nor/Makefile.am
-index 5a992fe..9e2409c 100644
+index b9353642f..b380147a1 100644
 --- a/src/flash/nor/Makefile.am
 +++ b/src/flash/nor/Makefile.am
-@@ -55,7 +55,8 @@ NOR_DRIVERS = \
- 	%D%/tms470.c \
+@@ -59,7 +59,8 @@ NOR_DRIVERS = \
  	%D%/virtual.c \
+ 	%D%/xcf.c \
  	%D%/xmc1xxx.c \
 -	%D%/xmc4xxx.c
 +	%D%/xmc4xxx.c \
@@ -13,19 +13,19 @@ index 5a992fe..9e2409c 100644
  NORHEADERS = \
  	%D%/core.h \
 diff --git a/src/flash/nor/drivers.c b/src/flash/nor/drivers.c
-index 4ad1d92..b60138a 100644
+index a4640a5e7..39e89858d 100644
 --- a/src/flash/nor/drivers.c
 +++ b/src/flash/nor/drivers.c
-@@ -67,6 +67,7 @@ extern struct flash_driver tms470_flash;
- extern struct flash_driver virtual_flash;
+@@ -72,6 +72,7 @@ extern struct flash_driver virtual_flash;
+ extern struct flash_driver xcf_flash;
  extern struct flash_driver xmc1xxx_flash;
  extern struct flash_driver xmc4xxx_flash;
 +extern struct flash_driver fslqspi_flash;
  
  /**
   * The list of built-in flash drivers.
-@@ -120,6 +121,7 @@ static struct flash_driver *flash_drivers[] = {
- 	&virtual_flash,
+@@ -130,6 +131,7 @@ static struct flash_driver *flash_drivers[] = {
+ 	&xcf_flash,
  	&xmc1xxx_flash,
  	&xmc4xxx_flash,
 +	&fslqspi_flash,
@@ -34,7 +34,7 @@ index 4ad1d92..b60138a 100644
  
 diff --git a/src/flash/nor/fslqspi.c b/src/flash/nor/fslqspi.c
 new file mode 100644
-index 0000000..e990d2f
+index 000000000..e990d2f1e
 --- /dev/null
 +++ b/src/flash/nor/fslqspi.c
 @@ -0,0 +1,1254 @@
@@ -1293,23 +1293,23 @@ index 0000000..e990d2f
 +	.commands = fslqspi_command_handlers,
 +};
 diff --git a/src/flash/nor/spi.c b/src/flash/nor/spi.c
-index 6501fbc..37c2908 100644
+index 273e8508f..b4d4b1c86 100644
 --- a/src/flash/nor/spi.c
 +++ b/src/flash/nor/spi.c
 @@ -54,6 +54,7 @@ const struct flash_device flash_devices[] = {
- 	FLASH_ID("sp s25fl164k",   0xd8, 0xc7, 0x00174001, 0x100, 0x10000, 0x800000),
- 	FLASH_ID("sp s25fl128",    0xd8, 0xc7, 0x00182001, 0x100, 0x10000, 0x1000000),
- 	FLASH_ID("sp s25fl256",    0xd8, 0xc7, 0x00190201, 0x100, 0x10000, 0x2000000),
-+	FLASH_ID("sp s25fs512s",   0xd8, 0xc7, 0x00200201, 0x100, 0x40000, 0x4000000),
- 	FLASH_ID("atmel 25f512",   0x52, 0xc7, 0x0065001f, 0x80,  0x8000,  0x10000),
- 	FLASH_ID("atmel 25f1024",  0x52, 0x62, 0x0060001f, 0x100, 0x8000,  0x20000),
- 	FLASH_ID("atmel 25f2048",  0x52, 0x62, 0x0063001f, 0x100, 0x10000, 0x40000),
-@@ -78,5 +79,8 @@ const struct flash_device flash_devices[] = {
- 	FLASH_ID("gd gd25q16c",    0xd8, 0xc7, 0x001540c8, 0x100, 0x10000, 0x200000),
- 	FLASH_ID("gd gd25q32c",    0xd8, 0xc7, 0x001640c8, 0x100, 0x10000, 0x400000),
- 	FLASH_ID("gd gd25q128c",   0xd8, 0xc7, 0x001840c8, 0x100, 0x10000, 0x1000000),
-+	FLASH_ID("issi 25wp32",    0xd8, 0xc7, 0x0016709d, 0x100, 0x10000, 0x400000),
-+	FLASH_ID("issi 25wp64",    0xd8, 0xc7, 0x0017709d, 0x100, 0x10000, 0x800000),
-+	FLASH_ID("issi 25wp128",   0xd8, 0xc7, 0x0018709d, 0x100, 0x10000, 0x1000000),
- 	FLASH_ID(NULL,             0,    0,	   0,          0,     0,       0)
+ 	FLASH_ID("sp s25fl164k",        0xd8, 0xc7, 0x00174001, 0x100, 0x10000, 0x800000),
+ 	FLASH_ID("sp s25fl128",         0xd8, 0xc7, 0x00182001, 0x100, 0x10000, 0x1000000),
+ 	FLASH_ID("sp s25fl256",         0xd8, 0xc7, 0x00190201, 0x100, 0x10000, 0x2000000),
++	FLASH_ID("sp s25fs512s",        0xd8, 0xc7, 0x00200201, 0x100, 0x40000, 0x4000000),
+ 	FLASH_ID("atmel 25f512",        0x52, 0xc7, 0x0065001f, 0x80,  0x8000,  0x10000),
+ 	FLASH_ID("atmel 25f1024",       0x52, 0x62, 0x0060001f, 0x100, 0x8000,  0x20000),
+ 	FLASH_ID("atmel 25f2048",       0x52, 0x62, 0x0063001f, 0x100, 0x10000, 0x40000),
+@@ -80,5 +81,8 @@ const struct flash_device flash_devices[] = {
+ 	FLASH_ID("gd gd25q16c",         0xd8, 0xc7, 0x001540c8, 0x100, 0x10000, 0x200000),
+ 	FLASH_ID("gd gd25q32c",         0xd8, 0xc7, 0x001640c8, 0x100, 0x10000, 0x400000),
+ 	FLASH_ID("gd gd25q128c",        0xd8, 0xc7, 0x001840c8, 0x100, 0x10000, 0x1000000),
++	FLASH_ID("issi 25wp32",         0xd8, 0xc7, 0x0016709d, 0x100, 0x10000, 0x400000),
++	FLASH_ID("issi 25wp64",         0xd8, 0xc7, 0x0017709d, 0x100, 0x10000, 0x800000),
++	FLASH_ID("issi 25wp128",        0xd8, 0xc7, 0x0018709d, 0x100, 0x10000, 0x1000000),
+ 	FLASH_ID(NULL,                  0,    0,    0,          0,     0,       0)
  };
