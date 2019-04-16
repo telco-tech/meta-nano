@@ -23,12 +23,12 @@ do_configure_prepend() {
 }
 
 do_compile_append() {
-	pushd ls1012anano/rcw
+	cd ls1012anano/rcw
 
 	for I in $(find -name "*.bin"); do
 		./byte_swap.tcl ${I} ${I}.swp8 8
 		mv -f ${I}.swp8 ${I}
 	done
 
-	popd
+	cd ../..
 }
