@@ -1,5 +1,5 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index a76678d5d8..2263740add 100644
+index a76678d5d8..3f68c3039b 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
 @@ -1120,6 +1120,13 @@ config TARGET_LS1012AFRDM
@@ -85,7 +85,7 @@ index 0000000000..54af75a8c3
 +};
 diff --git a/board/freescale/ls1012anano/Kconfig b/board/freescale/ls1012anano/Kconfig
 new file mode 100644
-index 0000000000..4b72b77ac6
+index 0000000000..3d6152e976
 --- /dev/null
 +++ b/board/freescale/ls1012anano/Kconfig
 @@ -0,0 +1,23 @@
@@ -114,7 +114,7 @@ index 0000000000..4b72b77ac6
 +endif
 diff --git a/board/freescale/ls1012anano/MAINTAINERS b/board/freescale/ls1012anano/MAINTAINERS
 new file mode 100644
-index 0000000000..fcc293bff4
+index 0000000000..9664fc09fa
 --- /dev/null
 +++ b/board/freescale/ls1012anano/MAINTAINERS
 @@ -0,0 +1,6 @@
@@ -153,10 +153,10 @@ index 0000000000..3c04d84ada
 +
 diff --git a/board/freescale/ls1012anano/eth.c b/board/freescale/ls1012anano/eth.c
 new file mode 100644
-index 0000000000..9ea275ea70
+index 0000000000..5256efadf9
 --- /dev/null
 +++ b/board/freescale/ls1012anano/eth.c
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,106 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
 + * Copyright 2017 NXP
@@ -181,29 +181,44 @@ index 0000000000..9ea275ea70
 +#include <dm/platform_data/pfe_dm_eth.h>
 +#include <i2c.h>
 +
-+#define DEFAULT_PFE_MDIO_NAME "PFE_MDIO"
++#define DEFAULT_PFE_MDIO0_NAME "PFE_MDIO0"
++#define DEFAULT_PFE_MDIO1_NAME "PFE_MDIO1"
 +
 +int pfe_eth_board_init(struct udevice *dev)
 +{
 +#ifdef CONFIG_FSL_PFE
++	static int init_done = 0;
 +	struct mii_dev *bus;
-+	struct pfe_mdio_info mac1_mdio_info;
++	struct pfe_mdio_info mac_mdio_info;
 +	struct pfe_eth_dev *priv = dev_get_priv(dev);
 +
-+	init_pfe_scfg_dcfg_regs();
++	if (! init_done) {
++		init_pfe_scfg_dcfg_regs();
 +
-+	mac1_mdio_info.reg_base = (void *)EMAC1_BASE_ADDR;
-+	mac1_mdio_info.name = DEFAULT_PFE_MDIO_NAME;
++		mac_mdio_info.reg_base = (void *)EMAC1_BASE_ADDR;
++		mac_mdio_info.name = DEFAULT_PFE_MDIO0_NAME;
 +
-+	bus = pfe_mdio_init(&mac1_mdio_info);
-+	if (!bus) {
-+		printf("Failed to register mdio\n");
-+		return -1;
++		bus = pfe_mdio_init(&mac_mdio_info);
++		if (!bus) {
++			printf("Failed to register mdio\n");
++			return -1;
++		}
++
++		init_done = 1;
 +	}
 +
-+	
++	if (priv->gemac_port) {
++		mac_mdio_info.reg_base = (void *)EMAC2_BASE_ADDR;
++		mac_mdio_info.name = DEFAULT_PFE_MDIO1_NAME;
++		bus = pfe_mdio_init(&mac_mdio_info);
++		if (!bus) {
++			printf("Failed to register mdio\n");
++			return -1;
++		}
++	}
++
 +	pfe_set_mdio(priv->gemac_port,
-+	    miiphy_get_dev_by_name(DEFAULT_PFE_MDIO_NAME));
++	    miiphy_get_dev_by_name(DEFAULT_PFE_MDIO0_NAME));
 +	
 +	if (!priv->gemac_port) /* MAC1 */
 +		pfe_set_phy_address_mode(0, CONFIG_PFE_EMAC1_PHY_ADDR,
@@ -253,7 +268,7 @@ new file mode 100644
 index 0000000000..f98b48e9a8
 --- /dev/null
 +++ b/board/freescale/ls1012anano/ls1012anano.c
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,155 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + * Copyright 2018 Telco-Tech GmbH
@@ -356,12 +371,18 @@ index 0000000000..f98b48e9a8
 +	return 0;
 +}
 +
-+#ifdef CONFIG_OF_LIBFDT
 +int esdhc_status_fixup(void *blob, const char *compat)
 +{
++	char esdhc0_path[] = "/soc/esdhc@1560000";
++	char esdhc1_path[] = "/soc/esdhc@1580000";
++
++	do_fixup_by_path(blob, esdhc0_path, "status", "okay",
++			 sizeof("okay"), 1);
++
++	do_fixup_by_path(blob, esdhc1_path, "status", "okay",
++			 sizeof("okay"), 1);
 +	return 0;
 +}
-+#endif
 +
 +
 +/**
@@ -405,10 +426,10 @@ index 0000000000..f98b48e9a8
 +}
 diff --git a/configs/ls1012anano_qspi_defconfig b/configs/ls1012anano_qspi_defconfig
 new file mode 100644
-index 0000000000..ea647be49e
+index 0000000000..3683ec269f
 --- /dev/null
 +++ b/configs/ls1012anano_qspi_defconfig
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,56 @@
 +CONFIG_ARM=y
 +CONFIG_TARGET_LS1012ANANO=y
 +CONFIG_SYS_TEXT_BASE=0x40100000
@@ -422,6 +443,7 @@ index 0000000000..ea647be49e
 +CONFIG_SYS_EXTRA_OPTIONS="QSPI_BOOT"
 +CONFIG_QSPI_BOOT=y
 +CONFIG_BOOTDELAY=3
++CONFIG_ENV_IS_IN_SPI_FLASH=y
 +# CONFIG_DISPLAY_BOARDINFO is not set
 +CONFIG_HUSH_PARSER=y
 +CONFIG_CMD_GREPENV=y
@@ -440,7 +462,7 @@ index 0000000000..ea647be49e
 +CONFIG_OF_CONTROL=y
 +CONFIG_NET_RANDOM_ETHADDR=y
 +CONFIG_DM=y
-+# CONFIG_BLK is not set
++CONFIG_BLK=y
 +CONFIG_DM_MMC=y
 +# CONFIG_DM_MMC_OPS is not set
 +CONFIG_DM_SPI_FLASH=y
@@ -466,10 +488,10 @@ index 0000000000..ea647be49e
 +CONFIG_EFI_LOADER=y
 diff --git a/include/configs/ls1012anano.h b/include/configs/ls1012anano.h
 new file mode 100644
-index 0000000000..af12a1a9db
+index 0000000000..afb901d5fb
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,124 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -494,6 +516,11 @@ index 0000000000..af12a1a9db
 +#define FSL_QSPI_FLASH_SIZE	SZ_16M
 +
 +#endif
++/*  MMC  */
++#ifdef CONFIG_MMC
++#define CONFIG_FSL_ESDHC
++#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
++#endif
 +
 +/* PFE Ethernet */
 +#ifdef CONFIG_FSL_PFE
@@ -505,6 +532,9 @@ index 0000000000..af12a1a9db
 +/* DDR */
 +#define CONFIG_DIMM_SLOTS_PER_CTLR	1
 +#define CONFIG_CHIP_SELECTS_PER_CTRL	1
++#ifdef CONFIG_NR_DRAM_BANKS
++#undef CONFIG_NR_DRAM_BANKS
++#endif
 +#define CONFIG_NR_DRAM_BANKS		2
 +#define CONFIG_SYS_SDRAM_SIZE		0x80000000
 +#define CONFIG_CMD_MEMINFO
