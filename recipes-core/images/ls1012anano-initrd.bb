@@ -15,6 +15,9 @@ PACKAGE_INSTALL = "\
 	kernel-modules \
 	ppfe-firmware \
 	\
+	util-linux-sfdisk \
+	e2fsprogs-mke2fs \
+	e2fsprogs-tune2fs \
 	ethtool \
 	iperf3 \
 	tcpdump \
