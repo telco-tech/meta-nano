@@ -34,10 +34,10 @@ index a4640a5e7..39e89858d 100644
  
 diff --git a/src/flash/nor/fslqspi.c b/src/flash/nor/fslqspi.c
 new file mode 100644
-index 000000000..e990d2f1e
+index 000000000..2f540bccf
 --- /dev/null
 +++ b/src/flash/nor/fslqspi.c
-@@ -0,0 +1,1254 @@
+@@ -0,0 +1,1436 @@
 +/***************************************************************************
 + *   Copyright (C) 2018 Mario Bernhard <bernhard@f1-gmbh.de>               *
 + *                                                                         *
@@ -72,6 +72,7 @@ index 000000000..e990d2f1e
 +#define FLASH_SIZE_16M		(1 << 24)
 +
 +/* QSPI Commands */
++#define QSPI_CMD_WRITE_SR1V	0x01
 +#define QSPI_CMD_PAGE_PROGRAM	0x02
 +#define QSPI_CMD_READ_SR1V	0x05
 +#define QSPI_CMD_WRITE_ENABLE	0x06
@@ -79,8 +80,10 @@ index 000000000..e990d2f1e
 +#define QSPI_CMD_FAST_READ4	0x0c
 +#define QSPI_CMD_PAGE_PROGRAM4	0x12
 +#define QSPI_CMD_READ_ANY_REG	0x65
++#define QSPI_CMD_RESET_ENABLE	0x66
 +#define QSPI_CMD_WRITE_ANY_REG	0x71
 +#define QSPI_CMD_BULK_ERASE	0xc7 /* 0x60 */
++#define QSPI_CMD_RESET		0x99
 +#define QSPI_CMD_READ_ID	0x9f
 +#define QSPI_CMD_SECTOR_ERASE	0xd8
 +#define QSPI_CMD_SECTOR_ERASE4	0xdc
@@ -89,8 +92,6 @@ index 000000000..e990d2f1e
 +#define QSPI_REG_SRV1_WIP	(1 << 0)
 +#define QSPI_REG_SRV1_WEL	(1 << 1)
 +#define QSPI_REG_SRV1_BP	(7 << 2)
-+#define QSPI_REG_SRV1_E_ERR	(1 << 5)
-+#define QSPI_REG_SRV1_P_ERR	(1 << 6)
 +
 +
 +/*
@@ -174,6 +175,8 @@ index 000000000..e990d2f1e
 +	SEQID_RDID,				/* read ID (0x9f) */
 +	SEQID_WRITE_ANY_REG,
 +	SEQID_READ_ANY_REG,
++	SEQID_WRITE_STATUS_REG,
++	SEQID_RESET,
 +	SEQID_MAX,
 +};
 +
@@ -310,8 +313,7 @@ index 000000000..e990d2f1e
 +}	/* fslqspi_op_init */
 +
 +
-+static int fslqspi_target_status(struct flash_bank *bank,
-+				 uint32_t seqid, uint32_t addr, uint32_t *status)
++static int fslqspi_target_status(struct flash_bank *bank, uint32_t addr, uint32_t *status)
 +{
 +	struct fslqspi_flash_bank *fslqspi_info = bank->driver_priv;
 +	struct target *target = bank->target;
@@ -323,7 +325,7 @@ index 000000000..e990d2f1e
 +			break;
 +
 +		if (target_write_u32(target, PBR_IPCR,
-+		    htobe32(IPCR_SEQID(seqid) | 1)))
++		    htobe32(IPCR_SEQID(SEQID_READ_STATUS_REG) | 1)))
 +			break;
 +
 +		if (fslqspi_wait_status(target, SR_BUSY, 0,
@@ -360,18 +362,8 @@ index 000000000..e990d2f1e
 +	uint32_t status = 0;
 +	int ret = ERROR_FAIL;
 +
-+	while (fslqspi_target_status(bank, SEQID_READ_STATUS_REG, 0, &status)
++	while (fslqspi_target_status(bank, 0, &status)
 +	    == ERROR_OK) {
-+
-+		if (status & QSPI_REG_SRV1_E_ERR) {
-+			LOG_ERROR("Error: QSPI Erase Error Occurred");
-+			break;
-+		}
-+
-+		if (status & QSPI_REG_SRV1_P_ERR) {
-+			LOG_ERROR("Error: QSPI Programming Error Occurred");
-+			break;
-+		}
 +
 +		if (status & QSPI_REG_SRV1_BP) {
 +			LOG_ERROR("Error: QSPI Block Protection Volatile");
@@ -405,8 +397,7 @@ index 000000000..e990d2f1e
 +		    QSPI_STATUS_TIMEOUT) != 0)
 +			break;
 +
-+		if (fslqspi_target_status(bank, SEQID_READ_STATUS_REG,
-+		    0, &status))
++		if (fslqspi_target_status(bank, 0, &status))
 +			break;
 +
 +	} while((status & QSPI_REG_SRV1_WEL) != QSPI_REG_SRV1_WEL);
@@ -519,6 +510,21 @@ index 000000000..e990d2f1e
 +
 +		if (fslqspi_lut_write(target, SEQID_READ_ANY_REG, v))
 +			break;
++
++		/* write device status register */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_WRITE_SR1V, SEI_WRITE, 1);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_WRITE_STATUS_REG, v))
++			break;
++
++		/* flash software reset */
++		v[0] = LUT_REG(SEI_CMD, QSPI_CMD_RESET_ENABLE, SEI_CMD, QSPI_CMD_RESET);
++		v[1] = v[2] = v[3] = 0;
++
++		if (fslqspi_lut_write(target, SEQID_RESET, v))
++			break;
++
 +
 +		ret = ERROR_OK;
 +	} while (0);
@@ -1241,25 +1247,201 @@ index 000000000..e990d2f1e
 +}	/* fslqspi_write_register */
 +
 +
++COMMAND_HANDLER(fslqspi_read_status_register)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank;
++	struct target *target = NULL;
++	uint32_t status, mcr = 0;
++	int ret = ERROR_FAIL;
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++		target = bank->target;
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		if (fslqspi_target_status(bank, 0, &status) == ERROR_FAIL)
++			break;
++
++		LOG_USER("status 0x%.2x", status);
++
++		ret = ERROR_OK;
++	} while (0);
++
++	if (target != NULL && mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_read_status_register */
++
++
++COMMAND_HANDLER(fslqspi_write_status_register)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank;
++	struct target *target = NULL;
++	uint32_t value, mcr = 0;
++	int ret = ERROR_FAIL;
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++		target = bank->target;
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (CMD_ARGC < 2) {
++			LOG_ERROR("%s", cmd->current->usage);
++			ret = ERROR_COMMAND_ARGUMENT_INVALID;
++			break;
++		}
++
++		if ((sscanf(CMD_ARGV[1], "0x%x", &value) != 1
++		    && sscanf(CMD_ARGV[1], "%d", &value) != 1))
++			break;
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		if (fslqspi_write_enable(bank))
++			break;
++
++		if (target_write_u32(target, PBR_TBDR, htobe32(value)))
++			break;
++
++		if (target_write_u32(target, PBR_IPCR, htobe32(IPCR_SEQID(SEQID_WRITE_STATUS_REG) | 1)))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0, QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		ret = fslqspi_wait_target_status(bank);
++
++	} while (0);
++
++	if (target != NULL && mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_write_status_register */
++
++
++COMMAND_HANDLER(fslqspi_reset)
++{
++	struct fslqspi_flash_bank *fslqspi_info;
++	struct flash_bank *bank = NULL;
++	struct target *target = NULL;
++	uint32_t mcr = 0;
++	int ret = ERROR_FAIL;
++
++	do {
++		if (CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank))
++			break;
++
++		fslqspi_info = bank->driver_priv;
++		target = bank->target;
++
++		if (target->state != TARGET_HALTED) {
++			LOG_ERROR("Target not halted");
++			ret = ERROR_TARGET_NOT_HALTED;
++			break;
++		}
++
++		if (!(fslqspi_info->probed)) {
++			LOG_ERROR("Flash bank not probed");
++			ret = ERROR_FLASH_BANK_NOT_PROBED;
++			break;
++		}
++
++		if (fslqspi_op_init(bank, &mcr))
++			break;
++
++		if (target_write_u32(target, PBR_SFAR, htobe32(fslqspi_info->base)))
++			break;
++
++		if (target_write_u32(target, PBR_IPCR, htobe32(IPCR_SEQID(SEQID_RESET))))
++			break;
++
++		if (fslqspi_wait_status(target, SR_BUSY, 0, QSPI_STATUS_TIMEOUT) != 0)
++			break;
++
++		ret = fslqspi_wait_target_status(bank);
++
++	} while (0);
++
++	if (target != NULL && mcr != 0)
++		target_write_u32(target, PBR_MCR, mcr);
++
++	return ret;
++}	/* fslqspi_reset */
++
++
 +static const struct command_registration fslqspi_exec_command_handlers[] = {
 +	{
 +		.name = "endian",
 +		.handler = fslqspi_endian,
 +		.mode = COMMAND_EXEC,
-+		.usage = "endian <bank> [LE32|LE64|BE32|BE64]",
++		.usage = "<bank> [LE32|LE64|BE32|BE64]",
 +		.help = "force endian for read and write data (default is host byte order)"
++	},{
++		.name = "read_status_register",
++		.handler = fslqspi_read_status_register,
++		.mode = COMMAND_EXEC,
++		.usage = "<bank>",
++		.help = "read flash device status register"
++	},{
++		.name = "write_status_register",
++		.handler = fslqspi_write_status_register,
++		.mode = COMMAND_EXEC,
++		.usage = "<bank> <value>",
++		.help = "write value to flash device status register"
 +	},{
 +		.name = "read_register",
 +		.handler = fslqspi_read_register,
 +		.mode = COMMAND_EXEC,
-+		.usage = "read_register <bank> <addr> [end addr]",
++		.usage = "<bank> <addr> [end addr]",
 +		.help = "read device register at addr or from addr to end addr"
 +	},{
 +		.name = "write_register",
 +		.handler = fslqspi_write_register,
 +		.mode = COMMAND_EXEC,
-+		.usage = "write_register <bank> <address> <value>",
++		.usage = "<bank> <address> <value>",
 +		.help = "write to device register"
++	},{
++		.name = "reset",
++		.handler = fslqspi_reset,
++		.mode = COMMAND_EXEC,
++		.usage = "<bank>",
++		.help = "flash software reset"
 +	},
 +	COMMAND_REGISTRATION_DONE
 +};
