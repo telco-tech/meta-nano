@@ -1,0 +1,51 @@
+diff --git a/modutils/modprobe.c b/modutils/modprobe.c
+index 0a372a0..89f7daa 100644
+--- a/modutils/modprobe.c
++++ b/modutils/modprobe.c
+@@ -131,7 +131,7 @@
+  * Note2: -b is always accepted, but if !FEATURE_MODPROBE_BLACKLIST,
+  * it is a no-op.
+  */
+-#define MODPROBE_OPTS  "alrDb"
++#define MODPROBE_OPTS  "alrC:Db"
+ /* -a and -D _are_ in fact compatible */
+ #define MODPROBE_COMPLEMENTARY "q-v:v-q:l--arD:r--alD:a--lr:D--rl"
+ //#define MODPROBE_OPTS  "acd:lnrt:C:b"
+@@ -145,9 +145,9 @@ enum {
+ 	OPT_REMOVE       = (INSMOD_OPT_UNUSED << 2), /* r */
+ 	//OPT_RESTRICT   = (INSMOD_OPT_UNUSED << x), /* t */
+ 	//OPT_VERONLY    = (INSMOD_OPT_UNUSED << x), /* V */
+-	//OPT_CONFIGFILE = (INSMOD_OPT_UNUSED << x), /* C */
+-	OPT_SHOW_DEPS    = (INSMOD_OPT_UNUSED << 3), /* D */
+-	OPT_BLACKLIST    = (INSMOD_OPT_UNUSED << 4) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
++	OPT_CONFIGFILE   = (INSMOD_OPT_UNUSED << 3), /* C */
++	OPT_SHOW_DEPS    = (INSMOD_OPT_UNUSED << 4), /* D */
++	OPT_BLACKLIST    = (INSMOD_OPT_UNUSED << 5) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
+ };
+ #if ENABLE_LONG_OPTS
+ static const char modprobe_longopts[] ALIGN1 =
+@@ -562,12 +562,14 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
+ 	int rc;
+ 	unsigned opt;
+ 	struct module_entry *me;
++	char *configdir = "/etc/modprobe.d";
+ 
+ 	INIT_G();
+ 
+ 	opt = getopt32long(argv, "^" INSMOD_OPTS MODPROBE_OPTS "\0" MODPROBE_COMPLEMENTARY,
+ 			modprobe_longopts
+-			INSMOD_ARGS
++			INSMOD_ARGS,
++			&configdir
+ 	);
+ 	argv += optind;
+ 
+@@ -657,7 +659,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
+ 		return EXIT_SUCCESS;
+ 
+ 	read_config("/etc/modprobe.conf");
+-	read_config("/etc/modprobe.d");
++	read_config(configdir);
+ 	if (ENABLE_FEATURE_MODUTILS_SYMBOLS && G.need_symbols)
+ 		read_config("modules.symbols");
+ 	load_modules_dep();

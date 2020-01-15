@@ -1,0 +1,62 @@
+diff --git a/modutils/modprobe.c b/modutils/modprobe.c
+index 89f7daa..b068966 100644
+--- a/modutils/modprobe.c
++++ b/modutils/modprobe.c
+@@ -191,6 +191,7 @@ struct globals {
+ 
+ 
+ static int read_config(const char *path);
++static void load_modules_dep(void);
+ 
+ static char *gather_options_str(char *opts, const char *append)
+ {
+@@ -320,6 +321,49 @@ static int FAST_FUNC config_file_action(const char *filename,
+ 		) {
+ 			/* blacklist <modulename> */
+ 			get_or_add_modentry(tokens[1])->flags |= MODULE_FLAG_BLACKLISTED;
++
++		} else if (strcmp(tokens[0], "softdep") == 0) {
++			char wildcard[MODULE_NAME_LEN];
++			char *pc, *tc, *tok;
++			llist_t *l, *dl;
++			struct module_entry *dm;
++
++			if (tokens[2] == NULL)
++				continue;
++
++			filename2modname(tokens[1], wildcard);
++
++			for (l = G.probes; l; l = l->link) {
++				m = (struct module_entry *) l->data;
++
++				if (fnmatch(wildcard, m->modname, 0) != 0)
++					continue;
++
++				pc = is_prefixed_with(tokens[2], "pre:");
++
++				if (pc != NULL) {
++					pc = skip_whitespace(pc);
++
++					while ((tok = strsep(&pc, " \t")) != NULL) {
++						if (tok[0] == '\0')
++							continue;
++
++						if ((tc = strrchr(tok, '/')))
++							tok = tc + 1;
++
++						dm = get_or_add_modentry(tok);
++
++						if (!(dm->flags & MODULE_FLAG_NEED_DEPS)) {
++							dm->flags |= MODULE_FLAG_NEED_DEPS;
++							G.num_unresolved_deps++;
++							load_modules_dep();
++						}
++
++						for (dl = dm->deps; dl; dl = dl->link)
++							llist_add_to_end(&m->deps, xstrdup(dl->data));
++					}
++				}
++			}
+ 		}
+ 	}
+ 	config_close(p);
