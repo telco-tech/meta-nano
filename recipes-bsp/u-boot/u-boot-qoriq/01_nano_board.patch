@@ -7,7 +7,7 @@ index a76678d5d8..3f68c3039b 100644
  	  Layerscape Architecture processor.
  
 +config TARGET_LS1012ANANO
-+	bool "Support ls1012anano"
++	bool "Support ls1012a nano"
 +	select ARCH_LS1012A
 +	select ARM64
 +	help
@@ -20,7 +20,7 @@ index a76678d5d8..3f68c3039b 100644
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
-+source "board/freescale/ls1012anano/Kconfig"
++source "board/freescale/ls1012a-nano/Kconfig"
  source "board/freescale/lx2160a/Kconfig"
  source "board/freescale/mx35pdk/Kconfig"
  source "board/freescale/s32v234evb/Kconfig"
@@ -57,7 +57,7 @@ index 0000000000..54af75a8c3
 +/include/ "fsl-ls1012a.dtsi"
 +
 +/ {
-+	model = "LS1012A NanoFW Board";
++	model = "LS1012A Nano Board";
 +	aliases {
 +		spi0 = &qspi;
 +	};
@@ -83,52 +83,56 @@ index 0000000000..54af75a8c3
 +&duart0 {
 +	status = "okay";
 +};
-diff --git a/board/freescale/ls1012anano/Kconfig b/board/freescale/ls1012anano/Kconfig
+diff --git a/board/freescale/ls1012a-nano/Kconfig b/board/freescale/ls1012a-nano/Kconfig
 new file mode 100644
-index 0000000000..3d6152e976
+index 0000000000..3e5cbffbf0
 --- /dev/null
-+++ b/board/freescale/ls1012anano/Kconfig
-@@ -0,0 +1,23 @@
++++ b/board/freescale/ls1012a-nano/Kconfig
+@@ -0,0 +1,27 @@
 +if TARGET_LS1012ANANO
 +
 +config SYS_BOARD
-+	default "ls1012anano"
++       default "ls1012a-nano"
 +
 +config SYS_VENDOR
-+	default "freescale"
++       default "freescale"
 +
 +config SYS_SOC
-+	default "fsl-layerscape"
++       default "fsl-layerscape"
 +
 +config SYS_CONFIG_NAME
-+	default "ls1012anano"
++       default "ls1012anano"
 +
 +config SYS_LS_PFE_FW_ADDR
-+	hex "Flash address of PFE firmware"
-+	default 0x40a00000
++       hex "Flash address of PFE firmware"
++       default 0x40a00000
 +
 +config SYS_LS_PPA_FW_ADDR
-+	hex "PPA Firmware Addr"
-+	default 0x40400000
++       hex "PPA Firmware Addr"
++       default 0x40400000
++
++config SYS_PFE_HW_ADDR
++       hex "PFE Ethernet Addr"
++       default 0x40040000
 +
 +endif
-diff --git a/board/freescale/ls1012anano/MAINTAINERS b/board/freescale/ls1012anano/MAINTAINERS
+diff --git a/board/freescale/ls1012a-nano/MAINTAINERS b/board/freescale/ls1012a-nano/MAINTAINERS
 new file mode 100644
 index 0000000000..9664fc09fa
 --- /dev/null
-+++ b/board/freescale/ls1012anano/MAINTAINERS
++++ b/board/freescale/ls1012a-nano/MAINTAINERS
 @@ -0,0 +1,6 @@
 +LS1012ANANO BOARD
 +M:	Mario
 +S:	Maintained
-+F:	board/freescale/ls1012anano/
++F:	board/freescale/ls1012a-nano/
 +F:	include/configs/ls1012anano.h
 +F:	configs/ls1012anano_qspi_defconfig
-diff --git a/board/freescale/ls1012anano/Makefile b/board/freescale/ls1012anano/Makefile
+diff --git a/board/freescale/ls1012a-nano/Makefile b/board/freescale/ls1012a-nano/Makefile
 new file mode 100644
 index 0000000000..4ec60f9628
 --- /dev/null
-+++ b/board/freescale/ls1012anano/Makefile
++++ b/board/freescale/ls1012a-nano/Makefile
 @@ -0,0 +1,8 @@
 +#
 +# Copyright 2016 Freescale Semiconductor, Inc.
@@ -138,11 +142,11 @@ index 0000000000..4ec60f9628
 +
 +obj-y += ls1012anano.o
 +obj-y += eth.o
-diff --git a/board/freescale/ls1012anano/README b/board/freescale/ls1012anano/README
+diff --git a/board/freescale/ls1012a-nano/README b/board/freescale/ls1012a-nano/README
 new file mode 100644
 index 0000000000..3c04d84ada
 --- /dev/null
-+++ b/board/freescale/ls1012anano/README
++++ b/board/freescale/ls1012a-nano/README
 @@ -0,0 +1,7 @@
 +
 +LS1012A SoC Overview
@@ -151,11 +155,11 @@ index 0000000000..3c04d84ada
 +SoC overview.
 +
 +
-diff --git a/board/freescale/ls1012anano/eth.c b/board/freescale/ls1012anano/eth.c
+diff --git a/board/freescale/ls1012a-nano/eth.c b/board/freescale/ls1012a-nano/eth.c
 new file mode 100644
 index 0000000000..5256efadf9
 --- /dev/null
-+++ b/board/freescale/ls1012anano/eth.c
++++ b/board/freescale/ls1012a-nano/eth.c
 @@ -0,0 +1,106 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
@@ -263,12 +267,12 @@ index 0000000000..5256efadf9
 +	.name = "pfe_eth",
 +	.platdata = &pfe_pdata1,
 +};
-diff --git a/board/freescale/ls1012anano/ls1012anano.c b/board/freescale/ls1012anano/ls1012anano.c
+diff --git a/board/freescale/ls1012a-nano/ls1012anano.c b/board/freescale/ls1012a-nano/ls1012anano.c
 new file mode 100644
 index 0000000000..f98b48e9a8
 --- /dev/null
-+++ b/board/freescale/ls1012anano/ls1012anano.c
-@@ -0,0 +1,155 @@
++++ b/board/freescale/ls1012a-nano/ls1012anano.c
+@@ -0,0 +1,165 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + * Copyright 2018 Telco-Tech GmbH
@@ -389,29 +393,39 @@ index 0000000000..f98b48e9a8
 + * setup config for phy & phy or phy & switch
 + */
 +static int ft_ethernet_fixup(void *fdt) {
-+	const char *mode[] = { "rgmii-txid", "sgmii" };
-+	uint32_t ksz;
-+	int offs;
++       const char *mode[] = { "rgmii-txid", "sgmii" };
++       uint32_t ksz, phy;
++       int offs;
++       char *p;
 +
-+	i2c_set_bus_num(0);
++       i2c_set_bus_num(0);
 +
-+	ksz = !i2c_probe(I2C_KSZ_ADDR);
++       ksz = !i2c_probe(I2C_KSZ_ADDR);
 +
-+	/* mdio for second mac must be disabled for phy mode, enabled for ksz switch */
-+	fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1/mdio@0", "reg", &ksz, 4, 0);
++       /* mdio for second mac must be disabled for phy mode, enabled for ksz switch */
++       fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1/mdio@0", "reg", &ksz, 4, 0);
 +
-+	/* set mode for phy (RGMII) or switch (SGMII) */
-+	fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1", "phy-mode", mode[ksz], strlen(mode[ksz]) + 1, 0);
++       /* set mode for phy (RGMII) or switch (SGMII) */
++       fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1", "phy-mode", mode[ksz], strlen(mode[ksz]) + 1, 0);
 +
-+	/* remove configuration if no switch chip is available */
-+	if (!ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@1/ksz9897@0")) > 0)
-+		fdt_del_node(fdt, offs);
++       /* remove configuration if no switch chip is available */
++       if (!ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@1/ksz9897@0")) > 0)
++               fdt_del_node(fdt, offs);
 +
-+	/* remove second phy config if switch is available */
-+	if (ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@0/ethernet-phy@1")) > 0)
-+		fdt_del_node(fdt, offs);
++       /* remove second phy config if switch is available */
++       if (ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@0/mdio@0/ethernet-phy@1")) > 0)
++               fdt_del_node(fdt, offs);
 +
-+	return 0;
++       /* set ethernet address from qspi to device tree */
++       p = CONFIG_SYS_PFE_HW_ADDR;
++
++       if (p[0] != 0xff)
++               fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@0", "local-mac-address", p, 6, 1);
++
++       if (p[6] != 0xff)
++               fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1", "local-mac-address", p + 6, 6, 1);
++
++       return 0;
 +}
 +
 +int ft_board_setup(void *blob, bd_t *bd)
@@ -491,7 +505,7 @@ new file mode 100644
 index 0000000000..afb901d5fb
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,111 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -574,44 +588,31 @@ index 0000000000..afb901d5fb
 +	"kernelheader_size=0x40000\0"		\
 +	"console=ttyS0,115200\0"		\
 +	BOOTENV					\
-+	"boot_scripts=ls1012anano_boot.scr\0"	\
-+	"boot_script_hdr=hdr_ls1012anano_bs.out\0"	\
-+	"scan_dev_for_boot_part="		\
-+	     "part list ${devtype} ${devnum} devplist; "	\
-+	     "env exists devplist || setenv devplist 1; "	\
-+	     "for distro_bootpart in ${devplist}; do "		\
-+		  "if fstype ${devtype} "			\
-+		      "${devnum}:${distro_bootpart} "		\
-+		      "bootfstype; then "			\
-+		      "run scan_dev_for_boot; "	\
-+		  "fi; "			\
-+	      "done\0"				\
-+	"scan_dev_for_boot="				  \
-+		"echo Scanning ${devtype} "		  \
-+				"${devnum}:${distro_bootpart}...; "  \
-+		"for prefix in ${boot_prefixes}; do "	  \
-+			"run scan_dev_for_scripts; "	  \
-+		"done;"					  \
-+		"\0"					  \
-+	"boot_a_script="				  \
-+		"load ${devtype} ${devnum}:${distro_bootpart} "  \
-+			"${scriptaddr} ${prefix}${script}; "    \
-+		"env exists secureboot && load ${devtype} "     \
-+			"${devnum}:${distro_bootpart} "		\
-+			"${scripthdraddr} ${prefix}${boot_script_hdr} " \
-+			"&& esbc_validate ${scripthdraddr};"    \
-+		"source ${scriptaddr}\0"	  \
-+	"installer=load mmc 0:2 $load_addr "	\
++	"mmc_installer=echo Trying load installer from sd card..;"	\
++		   "load mmc 0:2 $load_addr "	\
 +		   "/flex_installer_arm64.itb; "	\
-+		   "bootm $load_addr#$board\0"	\
-+	"itb_bootcmd=echo Trying load from sd..;"	\
 +		   "pfe stop; " \
-+		   "load mmc 0:1 $load_addr /Image.itb; " \
-+		   "bootm $load_addr\0"
++		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
++	"dhcp_installer=echo Trying load installer from network..;"	\
++		   "env exists ethaddr || setenv ethaddr 00:11:22:33:44:55;" \
++		   "dhcp $load_addr; "	\
++		   "pfe stop; " \
++		   "setenv bootargs console=$console; " \
++		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
++	"emmc_bootcmd=echo Trying load from emmc..;"	\
++		   "if load mmc 1:1 $load_addr /boot/itbImage; then " \
++		   "setenv bootargs console=$console root=/dev/mmcblk1p1 rootwait; " \
++		   "pfe stop; " \
++		   "bootm $load_addr; fi\0" \
++	"mmc_bootcmd=echo Trying load from sd card..;"	\
++		   "if load mmc 0:1 $load_addr /itbImage; then " \
++		   "setenv bootargs console=$console root=/dev/mmcblk0p1 rootwait; " \
++		   "pfe stop; " \
++		   "bootm $load_addr; fi\0"
 +
 +#undef CONFIG_BOOTCOMMAND
 +#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_SD_BOOT_QSPI)
-+#define CONFIG_BOOTCOMMAND "run distro_bootcmd; run itb_bootcmd; " \
++#define CONFIG_BOOTCOMMAND "run emmc_bootcmd; run mmc_bootcmd; run dhcp_installer; run mmc_installer;" \
 +			   "env exists secureboot && esbc_halt;"
 +#endif
 +
