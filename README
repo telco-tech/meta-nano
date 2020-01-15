@@ -1,0 +1,43 @@
+OpenEmbedded/Yocto layer for INCOstartec ls1012a based nano boards
+==================================================================
+
+This layer provides support for ls1012a-nano platforms for use with
+OpenEmbedded and/or Yocto.
+
+
+- INSTALL -
+-----------
+
+mkdir oe-core
+cd oe-core
+git clone https://github.com/telco-tech/meta-nano.git
+
+
+- BUILD -
+---------
+
+./meta-nano/files/yocto_nano_setup.sh
+
+This will build all the yocto stuff.
+
+
+- INSTALL IMAGE -
+-----------------
+
+./meta-nano/files/flash_setup.sh
+
+Starts tftp and bootp daemons.
+
+./meta-nano/files/flash_nano.sh
+
+This will flash the board. The board must be connected via Olimex ARM-USB-OCD-H.
+NOTE: Connect the RCW Jumper.
+
+
+After flash, reboot the board to install the core-image.
+
+The board must be connected with Ethernet on first port. An minicom on serial port my be helpful to see that's going on. (115200 8n1)
+
+
+
+
