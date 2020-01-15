@@ -3,13 +3,12 @@ DESCRIPTION = "Small image capable of booting a device."
 LICENSE = "MIT"
 
 IMAGE_FSTYPES = "cpio.gz"
-IMAGE_LINGUAS = ""
-IMAGE_FEATURES = "debug-tweaks"
+IMAGE_LINGUAS = " "
 
 PACKAGE_INSTALL = "\
 	packagegroup-core-boot \
-	packagegroup-core-ssh-dropbear \
 	udev \
+	install-init \
 	\
 	${ROOTFS_BOOTSTRAP_INSTALL} \
 	kernel-modules \
@@ -18,9 +17,6 @@ PACKAGE_INSTALL = "\
 	util-linux-sfdisk \
 	e2fsprogs-mke2fs \
 	e2fsprogs-tune2fs \
-	ethtool \
-	iperf3 \
-	tcpdump \
 "
 
 inherit core-image
@@ -34,3 +30,14 @@ do_fix_named_link() {
 }
 
 IMAGE_POSTPROCESS_COMMAND += "do_fix_named_link;"
+
+do_setup_modprobe_d() {
+
+	mkdir -p ${IMAGE_ROOTFS}/etc/modprobe.d
+
+	# load the ksz9897 (Switch) driver before the package engine
+	echo "softdep pfe pre: kernel/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.ko" > ${IMAGE_ROOTFS}/etc/modprobe.d/pfe.conf
+
+}
+
+IMAGE_PREPROCESS_COMMAND += "do_setup_modprobe_d;"

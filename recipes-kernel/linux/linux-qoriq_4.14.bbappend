@@ -1,6 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:${THISDIR}/${P}:"
 
-INITRAMFS_IMAGE = "ls1012anano-initrd"
+INITRAMFS_IMAGE = "ls1012anano-install"
 
 SRC_URI += "\
 	file://fsl-pfe_01_fix_second_serdes_setup.patch \
