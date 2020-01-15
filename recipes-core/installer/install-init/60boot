@@ -1,0 +1,5 @@
+#!/bin/sh
+
+[ -n "${siaddr}" -a -n "${boot_file}" ] \
+        && echo -en "SIADDR=${siaddr}\nBOOTFILE=${boot_file}\n" > /etc/setup
+
