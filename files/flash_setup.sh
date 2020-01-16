@@ -26,7 +26,7 @@ fi
 PATH=${PWD}/$(find build/tmp-glibc/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
 
 if [ -z "$(which openocd)" ]; then
-	MISSING="Failed to find openocd - Please build with: bitbake openocd-native\n"
+	MISSING="Failed to find openocd - Please build with: bitbake openocd-native build-sysroots\n"
 fi
 
 if [ -z "$(which atftpd)" ]; then
