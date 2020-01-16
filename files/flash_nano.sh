@@ -89,6 +89,8 @@ openocd -f interface/ftdi/olimex-arm-usb-ocd-h.cfg -f target/ls1012a.cfg &
 
 PID_OPENOCD=${!}
 
+# time for openocd to start
+sleep 3
 
 # S25FS512S - disable 4-kB Erase (CR3NV - Uniform Sector Architecture)
 # TODO fslqspi read_register 0 0x04 != 0x08
@@ -132,3 +134,10 @@ for S in ${SECTIONS}; do
 
 done
 
+echo "+-------------------------------------------+"
+echo "|                                           |"
+echo "|           Write QSPI: Success             |"
+echo "|                                           |"
+echo "+-------------------------------------------+"
+
+exit 0
