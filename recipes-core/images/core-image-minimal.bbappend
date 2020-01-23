@@ -2,6 +2,7 @@
 PACKAGE_INSTALL_append = "\
 	kernel-modules \
 	ppfe-firmware \
+	ls1012a-nano-hw-test-scripts \
 "
 
 do_setup_modprobe_d() {
