@@ -1,0 +1,74 @@
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+index 926a2a028b28..a6a988b5056a 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+@@ -15693,7 +15693,9 @@ static void link_update_work(struct work_struct *work)
+ 		if (!info->report)
+ 			continue;
+ 		info->report = false;
+-		phydev = sw->phy[i];
++		phydev = sw->phy[p];
++		if (!phydev)
++			continue;
+ 		phydev->link = (info->state == media_connected);
+ 		phydev->speed = info->tx_rate / TX_RATE_UNIT;
+ 		phydev->duplex = (info->duplex == 2);
+@@ -17156,7 +17158,7 @@ static void sw_r_phy(struct ksz_sw *sw, u16 phy, u16 reg, u16 *val)
+ 	u16 ret = 0;
+ 	uint p;
+ 
+-	p = phy - 1;
++	p = phy/* - 1*/;
+ 	if (p < sw->phy_port_cnt) {
+ 		u16 data;
+ 
+@@ -17221,18 +17223,18 @@ static int ksz_mii_read(struct mii_bus *bus, int phy_id, int regnum)
+ 	ret = 0;
+ 	if (regnum < 11) {
+ 		u16 data;
+-		struct ksz_port *port;
+-
+-		port = &ks->ports[phy_id];
+-
+-		/* Not initialized during registration. */
+-		if (sw->phy[phy_id]) {
+-			struct phy_priv *phydata;
+-
+-			phydata = sw->phy[phy_id]->priv;
+-			port = phydata->port;
+-		}
+-		phy_id = port->linked->phy_id;
++// 		struct ksz_port *port;
++//
++// 		port = &ks->ports[phy_id];
++//
++// 		/* Not initialized during registration. */
++// 		if (sw->phy[phy_id]) {
++// 			struct phy_priv *phydata;
++//
++// 			phydata = sw->phy[phy_id]->priv;
++// 			port = phydata->port;
++// 		}
++// 		phy_id = port->linked->phy_id;
+ 		sw_r_phy(sw, phy_id, regnum, &data);
+ 		ret = data;
+ 	}
+@@ -17373,7 +17375,8 @@ static int ksz_mii_init(struct sw_priv *ks)
+ 
+ 	ks->bus = bus;
+ 	ks->pdev = pdev;
+-	phydev = mdiobus_get_phy(bus, 0);
++	info = get_port_info(&ks->sw, 0);
++	phydev = mdiobus_get_phy(bus, info->phy_id);
+ 	ks->phydev = phydev;
+ 	sw_init_phydev(&ks->sw, phydev);
+ 
+@@ -17890,7 +17893,7 @@ static void ksz_setup_logical_ports(struct ksz_sw *sw, u8 id, uint ports)
+ 		info = &sw->port_info[i];
+ 		info->phy_p = p;
+ 		info->phy_m = BIT(p);
+-		info->phy_id = p + 1;
++		info->phy_id = p/* + 1*/;
+ 		info = &sw->port_info[p];
+ 		info->log_p = i;
+ 		info->log_m = BIT(l);

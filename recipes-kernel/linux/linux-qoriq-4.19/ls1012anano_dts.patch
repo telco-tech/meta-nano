@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..e310f57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,225 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
 + *
@@ -54,7 +54,7 @@ index 0000000..e310f57
 +#include <dt-bindings/net/ti-dp83867.h>
 +
 +/ {
-+	model = "LS1012A NanoFW Board";
++	model = "LS1012A Nano Board";
 +	compatible = "fsl,ls1012a-nano", "fsl,ls1012a";
 +
 +	aliases {
@@ -96,16 +96,46 @@ index 0000000..e310f57
 +	};
 +
 +	ksz9897: ksz9897@5f {
-+		compatible = "microchip,i2c-ksz9897", "microchip,ksz9897";
++		compatible = "microchip,ksz9897";
 +		reg = <0x5f>;
++		sw_host_port = <7>;
 +		status = "okay";
++
++		mdio@0 { /* sw.0 */
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			reg = <0x1>;
++
++			port1: ethernet-phy@0 {
++				reg = <0>;
++			};
++			port2: ethernet-phy@1 {
++				reg = <1>;
++			};
++			port3: ethernet-phy@2 {
++				reg = <2>;
++			};
++			port4: ethernet-phy@3 {
++				reg = <3>;
++			};
++			port5: ethernet-phy@4 {
++				reg = <4>;
++			};
++
++			/* port6 not connected */
++
++			port7: ethernet-phy@6 {	/* u-boot may remove this */
++				reg = <6>;
++			};
++		};
 +	};
 +};
 +
 +&qspi {
 +	status = "okay";
 +
-+	qflash0: s25fs512s@0 {
++	qflash0: is25wp128@0 {
 +		compatible = "spansion,m25p80";
 +		#address-cells = <1>;
 +		#size-cells = <1>;
@@ -146,7 +176,7 @@ index 0000000..e310f57
 +	 * see ls1012anano.c board setup file (u-boot)
 +	 */
 +
-+	ethernet@0 {
++	pfe_mac0: ethernet@0 {
 +		compatible = "fsl,pfe-gemac-port";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
@@ -155,36 +185,11 @@ index 0000000..e310f57
 +		fsl,gemac-phy-id = <0x2>;	/* PHY_ID */
 +		fsl,mdio-mux-val = <0x0>;
 +		phy-mode = "sgmii";
++		phy-handle = <&sgmii_phy1>;
 +		fsl,pfe-phy-if-flags = <0x0>;
-+
-+		mdio@0 {
-+			#address-cells = <1>;
-+			#size-cells = <0>;
-+
-+			reg = <0x1>;		/* enabled/disabled */
-+
-+			ethernet-phy@2 {
-+				compatible = "ethernet-phy-id2000.a231";
-+				reg = <2>;
-+				ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_25_NS>;
-+				ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_75_NS>;
-+				ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
-+				ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
-+			};
-+
-+			/* NOTE this is the phy from gamc 1 - connected to bus MDIO 0 */
-+			ethernet-phy@1 {	/* u-boot may remove this */
-+				compatible = "ethernet-phy-id2000.a231";
-+				reg = <1>;
-+				ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
-+				ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
-+				ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
-+				ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
-+			};
-+		};
 +	};
 +
-+	ethernet@1 {
++	pfe_mac1: ethernet@1 {
 +		compatible = "fsl,pfe-gemac-port";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
@@ -193,21 +198,33 @@ index 0000000..e310f57
 +		fsl,gemac-phy-id = <0x1>;	/* PHY_ID */
 +		fsl,mdio-mux-val = <0x0>;
 +		phy-mode = "rgmii-txid";	/* u-boot may change this */
++		phy-handle = <&sgmii_phy2>;	/* u-boot may change this */
 +		fsl,pfe-phy-if-flags = <0x0>;
++	};
 +
-+		mdio@0 {			/* dummy */
-+			reg = <0x0>;		/* u-boot may enable this */
++	mdio@0 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		reg = <0x1>;		/* enabled/disabled */
++
++		sgmii_phy1: ethernet-phy@2 {
++			compatible = "ethernet-phy-id2000.a231";
++			reg = <2>;
++			ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_25_NS>;
++			ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_75_NS>;
++			ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
++			ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
 +		};
 +
-+		ksz9897@0 {			/* u-boot may remove this */
-+			#address-cells = <1>;
-+			#size-cells = <0>;
-+			reg = <0x0>;		/* mdio bus id */
-+
-+			ethernet-phy@0 {
-+				reg = <0x01>;	/* phy id (port 0 = phy id 1) */
-+				phy-mode = "gmii";
-+			};
++		/* NOTE this is the phy from gamc 1 - connected to bus MDIO 0 */
++		sgmii_phy2: ethernet-phy@1 {	/* u-boot may remove this */
++			compatible = "ethernet-phy-id2000.a231";
++			reg = <1>;
++			ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
++			ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
++			ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
++			ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
 +		};
 +	};
 +

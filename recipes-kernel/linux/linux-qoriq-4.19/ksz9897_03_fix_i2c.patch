@@ -1,0 +1,15 @@
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+index af462146a301..f826318bcb87 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+@@ -3620,6 +3620,10 @@ static int sw_r_mib_cnt_hw(struct ksz_sw *sw, uint port, u32 addr[], int num,
+ 			if (!(data[0] & MIB_COUNTER_VALID) && dbg_mib++ < 5)
+ 				dbg_msg(" !valid: %08x"NL, data[0]);
+ 			data[1] = be32_to_cpu(data[1]);
++#if defined(CONFIG_I2C_KSZ9897) || defined(CONFIG_I2C_KSZ9897_MODULE)
++			/* valid bit ? */
++			break;
++#endif
+ 		} while (!(data[0] & MIB_COUNTER_VALID));
+ 		data += READ_MIB_ENTRY_SIZE;
+ 	}

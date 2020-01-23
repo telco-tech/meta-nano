@@ -1,8 +1,8 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_hif.h b/drivers/staging/fsl_ppfe/pfe_hif.h
-index 8281adb12cd7..6ab79dcbdcb5 100644
+index fc4c6c08f094..ac827a927bb9 100644
 --- a/drivers/staging/fsl_ppfe/pfe_hif.h
 +++ b/drivers/staging/fsl_ppfe/pfe_hif.h
-@@ -48,7 +48,7 @@ enum {
+@@ -35,7 +35,7 @@ enum {
   * HIF_TX_DESC_NT value should be always greter than 4,
   * Otherwise HIF_TX_POLL_MARK will become zero.
   */

@@ -1,8 +1,8 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index a76678d5d8..3f68c3039b 100644
+index c3d770364d..2a709f8090 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -1120,6 +1120,13 @@ config TARGET_LS1012AFRDM
+@@ -1202,6 +1202,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
  
@@ -11,12 +11,12 @@ index a76678d5d8..3f68c3039b 100644
 +	select ARCH_LS1012A
 +	select ARM64
 +	help
-+	  Support for INCOstartec NanoFW platform.
++	  Support for INCOstartec Nano platform.
 +
- config TARGET_LS1088ARDB
- 	bool "Support ls1088ardb"
- 	select ARCH_LS1088A
-@@ -1492,6 +1499,7 @@ source "board/freescale/ls1046ardb/Kconfig"
+ config TARGET_LS1028AQDS
+ 	bool "Support ls1028aqds"
+ 	select ARCH_LS1028A
+@@ -1637,6 +1644,7 @@ source "board/freescale/ls1046afrwy/Kconfig"
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
@@ -25,21 +25,35 @@ index a76678d5d8..3f68c3039b 100644
  source "board/freescale/mx35pdk/Kconfig"
  source "board/freescale/s32v234evb/Kconfig"
 diff --git a/arch/arm/cpu/armv8/Kconfig b/arch/arm/cpu/armv8/Kconfig
-index aac3aebb44..fcadb897a3 100644
+index 92a2b58ed4..2c61d77e3b 100644
 --- a/arch/arm/cpu/armv8/Kconfig
 +++ b/arch/arm/cpu/armv8/Kconfig
-@@ -102,7 +102,7 @@ config PSCI_RESET
+@@ -103,7 +103,7 @@ config PSCI_RESET
  		   !TARGET_LS1088ARDB && !TARGET_LS1088AQDS && \
  		   !TARGET_LS1012ARDB && !TARGET_LS1012AFRDM && \
  		   !TARGET_LS1012A2G5RDB && !TARGET_LS1012AQDS && \
 -		   !TARGET_LS1012AFRWY && \
 +		   !TARGET_LS1012AFRWY && !TARGET_LS1012ANANO && \
+ 		   !TARGET_LS1028ARDB && !TARGET_LS1028AQDS && \
  		   !TARGET_LS1043ARDB && !TARGET_LS1043AQDS && \
  		   !TARGET_LS1046ARDB && !TARGET_LS1046AQDS && \
- 		   !TARGET_LS2081ARDB && !TARGET_LX2160ARDB && \
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index b9f34113ea..f8001c0fdd 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -310,7 +310,8 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
+ 	fsl-ls1012a-rdb.dtb \
+ 	fsl-ls1012a-2g5rdb.dtb \
+ 	fsl-ls1012a-frdm.dtb \
+-	fsl-ls1012a-frwy.dtb
++	fsl-ls1012a-frwy.dtb \
++	fsl-ls1012a-nano.dtb
+ 
+ dtb-$(CONFIG_TARGET_DRAGONBOARD410C) += dragonboard410c.dtb
+ dtb-$(CONFIG_TARGET_DRAGONBOARD820C) += dragonboard820c.dtb
 diff --git a/arch/arm/dts/fsl-ls1012a-nano.dts b/arch/arm/dts/fsl-ls1012a-nano.dts
 new file mode 100644
-index 0000000000..54af75a8c3
+index 0000000000..a4b9dfa06b
 --- /dev/null
 +++ b/arch/arm/dts/fsl-ls1012a-nano.dts
 @@ -0,0 +1,40 @@
@@ -67,7 +81,7 @@ index 0000000000..54af75a8c3
 +	bus-num = <0>;
 +	status = "okay";
 +
-+	qflash0: s25fl128s@0 {
++	qflash0: is25wp128s@0 {
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		compatible = "spi-flash";
@@ -85,7 +99,7 @@ index 0000000000..54af75a8c3
 +};
 diff --git a/board/freescale/ls1012a-nano/Kconfig b/board/freescale/ls1012a-nano/Kconfig
 new file mode 100644
-index 0000000000..3e5cbffbf0
+index 0000000000..32f277fa19
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/Kconfig
 @@ -0,0 +1,27 @@
@@ -118,7 +132,7 @@ index 0000000000..3e5cbffbf0
 +endif
 diff --git a/board/freescale/ls1012a-nano/MAINTAINERS b/board/freescale/ls1012a-nano/MAINTAINERS
 new file mode 100644
-index 0000000000..9664fc09fa
+index 0000000000..53d746d50a
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/MAINTAINERS
 @@ -0,0 +1,6 @@
@@ -269,10 +283,10 @@ index 0000000000..5256efadf9
 +};
 diff --git a/board/freescale/ls1012a-nano/ls1012anano.c b/board/freescale/ls1012a-nano/ls1012anano.c
 new file mode 100644
-index 0000000000..f98b48e9a8
+index 0000000000..547c802e88
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/ls1012anano.c
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,186 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + * Copyright 2018 Telco-Tech GmbH
@@ -389,43 +403,64 @@ index 0000000000..f98b48e9a8
 +}
 +
 +
++static int set_phy_handle(void *fdt, const char *path) {
++	uint32_t phandle;
++	int offs;
++
++	do {
++		if ((offs = fdt_path_offset(fdt, path)) < 0)
++			break;
++
++		if ((phandle = fdt_create_phandle(fdt, offs)) == 0)
++			break;
++
++		phandle = cpu_to_fdt32(phandle);
++
++		if ((offs = fdt_path_offset(fdt, "/pfe@4000000/ethernet@1")) < 0)
++			break;
++
++		if (fdt_setprop(fdt, offs, "phy-handle", &phandle, sizeof(phandle)) < 0)
++			break;
++
++		return 0;
++	} while (0);
++
++	return -1;
++}
++
++
 +/**
 + * setup config for phy & phy or phy & switch
 + */
 +static int ft_ethernet_fixup(void *fdt) {
-+       const char *mode[] = { "rgmii-txid", "sgmii" };
-+       uint32_t ksz, phy;
-+       int offs;
-+       char *p;
++	const char *mode[] = { "rgmii-txid", "sgmii" };
++	const char *phy[] = { "/pfe@4000000/mdio@0/ethernet-phy@1", "/soc/i2c@2180000/ksz9897@5f/mdio@0/ethernet-phy@6" };
++	uint32_t ksz;
++	int offs;
++	char *p;
 +
-+       i2c_set_bus_num(0);
++	i2c_set_bus_num(0);
 +
-+       ksz = !i2c_probe(I2C_KSZ_ADDR);
++	ksz = !i2c_probe(I2C_KSZ_ADDR);
 +
-+       /* mdio for second mac must be disabled for phy mode, enabled for ksz switch */
-+       fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1/mdio@0", "reg", &ksz, 4, 0);
++	/* set mode for phy (RGMII) or switch (SGMII) */
++	fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@1", "phy-mode", mode[ksz], strlen(mode[ksz]) + 1, 0);
 +
-+       /* set mode for phy (RGMII) or switch (SGMII) */
-+       fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1", "phy-mode", mode[ksz], strlen(mode[ksz]) + 1, 0);
++	if ((offs = fdt_path_offset(fdt, phy[!ksz])) > 0)
++		fdt_del_node(fdt, offs);
 +
-+       /* remove configuration if no switch chip is available */
-+       if (!ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@1/ksz9897@0")) > 0)
-+               fdt_del_node(fdt, offs);
++	set_phy_handle(fdt, phy[ksz]);
 +
-+       /* remove second phy config if switch is available */
-+       if (ksz && (offs = fdt_path_offset(fdt, "/pfe@04000000/ethernet@0/mdio@0/ethernet-phy@1")) > 0)
-+               fdt_del_node(fdt, offs);
++	/* set ethernet address from qspi to device tree */
++	p = CONFIG_SYS_PFE_HW_ADDR;
 +
-+       /* set ethernet address from qspi to device tree */
-+       p = CONFIG_SYS_PFE_HW_ADDR;
++	if (p[0] != 0xff)
++		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@0", "local-mac-address", p, 6, 1);
 +
-+       if (p[0] != 0xff)
-+               fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@0", "local-mac-address", p, 6, 1);
++	if (p[6] != 0xff)
++		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@1", "local-mac-address", p + 6, 6, 1);
 +
-+       if (p[6] != 0xff)
-+               fdt_find_and_setprop(fdt, "/pfe@04000000/ethernet@1", "local-mac-address", p + 6, 6, 1);
-+
-+       return 0;
++	return 0;
 +}
 +
 +int ft_board_setup(void *blob, bd_t *bd)
@@ -440,10 +475,10 @@ index 0000000000..f98b48e9a8
 +}
 diff --git a/configs/ls1012anano_qspi_defconfig b/configs/ls1012anano_qspi_defconfig
 new file mode 100644
-index 0000000000..3683ec269f
+index 0000000000..374791f6ce
 --- /dev/null
 +++ b/configs/ls1012anano_qspi_defconfig
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,58 @@
 +CONFIG_ARM=y
 +CONFIG_TARGET_LS1012ANANO=y
 +CONFIG_SYS_TEXT_BASE=0x40100000
@@ -451,6 +486,7 @@ index 0000000000..3683ec269f
 +CONFIG_QSPI_AHB_INIT=y
 +CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nano"
 +# CONFIG_SYS_MALLOC_F is not set
++CONFIG_FIT=y
 +CONFIG_FIT_VERBOSE=y
 +CONFIG_OF_BOARD_SETUP=y
 +CONFIG_OF_STDOUT_VIA_ALIAS=y
@@ -479,8 +515,11 @@ index 0000000000..3683ec269f
 +CONFIG_BLK=y
 +CONFIG_DM_MMC=y
 +# CONFIG_DM_MMC_OPS is not set
-+CONFIG_DM_SPI_FLASH=y
++CONFIG_SPI=y
 +CONFIG_SPI_FLASH=y
++CONFIG_DM_SPI=y
++CONFIG_DM_SPI_FLASH=y
++CONFIG_FSL_QSPI=y
 +CONFIG_DM_ETH=y
 +CONFIG_NETDEVICES=y
 +# CONFIG_E1000 is not set
@@ -490,8 +529,6 @@ index 0000000000..3683ec269f
 +CONFIG_DM_PCI_COMPAT=y
 +CONFIG_PCIE_LAYERSCAPE=y
 +CONFIG_SYS_NS16550=y
-+CONFIG_DM_SPI=y
-+CONFIG_FSL_DSPI=y
 +CONFIG_USB=y
 +CONFIG_DM_USB=y
 +CONFIG_USB_XHCI_HCD=y
@@ -502,7 +539,7 @@ index 0000000000..3683ec269f
 +CONFIG_EFI_LOADER=y
 diff --git a/include/configs/ls1012anano.h b/include/configs/ls1012anano.h
 new file mode 100644
-index 0000000000..afb901d5fb
+index 0000000000..d34b835a07
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
 @@ -0,0 +1,111 @@

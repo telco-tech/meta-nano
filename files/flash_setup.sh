@@ -23,7 +23,12 @@ if [ -n "$(which openocd)" ]; then
 	fi
 fi
 
-PATH=${PWD}/$(find build/tmp-glibc/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
+WDIR=tmp-glibc
+
+[ ! -d ${WDIR}/sysroots ] \
+	&& WDIR=build/${WDIR}
+
+PATH=${PWD}/$(find ${WDIR}/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
 
 if [ -z "$(which openocd)" ]; then
 	MISSING="Failed to find openocd - Please build with: bitbake openocd-native build-sysroots\n"
@@ -118,7 +123,7 @@ fi
 
 echo "Starting tftp daemon..."
 
-sudo atftpd --daemon ${PWD}/build/tmp-glibc/deploy/images/ls1012anano || exit
+sudo atftpd --daemon ${PWD}/${WDIR}/deploy/images/ls1012anano || exit
 
 PID_ATFTPD=${!}
 

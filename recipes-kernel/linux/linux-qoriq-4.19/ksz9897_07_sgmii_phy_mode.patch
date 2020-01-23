@@ -1,0 +1,26 @@
+diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+index 926a2a028b28..89f49924175f 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
+@@ -7735,6 +7735,21 @@ dbg_msg("CFG: %04x"NL, cfg);
+ 			break;
+ 		}
+ 	}
++/* AN2647 Alternative B */
++#if 1
++	if (!autoneg) {
++		u16 v;
++
++		v = 0x001c;
++		port_sgmii_w(sw, p, SR_MII, MMD_SR_MII_AUTO_NEG_CTRL, &v, 1);
++
++		v = SR_MII_AUTO_NEG_FULL_DUPLEX;
++		port_sgmii_w(sw, p, SR_MII, MMD_SR_MII_AUTO_NEGOTIATION, &v, 1);
++
++		ctrl |= SR_MII_AUTO_NEG_RESTART;
++		autoneg = 1;
++	}
++#endif
+ 	if (!autoneg) {
+ 		ctrl &= ~SR_MII_AUTO_NEG_ENABLE;
+ dbg_msg("CTRL: %04x"NL, ctrl);

@@ -1,0 +1,13 @@
+diff --git a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
+index 131169999660..ac6efff386fb 100644
+--- a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
++++ b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
+@@ -176,7 +176,7 @@ static void i2c_wrreg(struct sw_priv *priv, u32 addr, void *txb, size_t txl)
+ 	sw->ops->chk_regs(sw, addr, txb, txl);
+ }
+ 
+-static void i2c_wrreg_size(struct sw_priv *priv, u8 reg, unsigned val,
++static void i2c_wrreg_size(struct sw_priv *priv, u32 reg, unsigned val,
+ 			   size_t size)
+ {
+ 	struct i2c_hw_priv *hw_priv = priv->hw_dev;

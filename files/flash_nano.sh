@@ -85,6 +85,11 @@ fi
 
 PATH=${PWD}/$(find tmp-glibc/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
 
+if [ -z "$(which openocd)" ]; then
+	echo "Failed to find openocd binary"
+	exit 1
+fi
+
 openocd -f interface/ftdi/olimex-arm-usb-ocd-h.cfg -f target/ls1012a.cfg &
 
 PID_OPENOCD=${!}
@@ -118,7 +123,7 @@ for S in ${SECTIONS}; do
 	| nc localhost 4444 \
 	| while read LINE; do
 
-		if [ "${LINE:0:5}" = "error" -o "${LINE:0:16}" = "Nothing to write" ]; then
+		if [ "${LINE:1:5}" = "rror:" -o "${LINE:0:16}" = "Nothing to write" ]; then
 
 			echo "Failed to write ${FILE} to ${ADDR}"
 			exit 1
