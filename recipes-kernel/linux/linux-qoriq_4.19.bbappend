@@ -12,6 +12,7 @@ SRC_URI += "\
 	file://fsl-pfe_01_fix_second_serdes_setup.patch;apply=no \
 	file://fsl-pfe_02_fix_eth_priv_vs_gemac_num.patch \
 	file://fsl-pfe_03_fix_rx_desc_count.patch \
+	file://fsl-pfe_04_fix_of_gemac_child.patch \
 	file://ksz9897_01_v1.2.2.patch \
 	file://ksz9897_02_ptp_clock.patch \
 	file://ksz9897_03_fix_i2c.patch;apply=no \
