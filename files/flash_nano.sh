@@ -86,7 +86,7 @@ fi
 PATH=${PWD}/$(find tmp-glibc/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
 
 if [ -z "$(which openocd)" ]; then
-	echo "Failed to find openocd binary"
+	echo "Failed to find openocd binary (Please try: bitbake openocd-native && bitbake build-sysroots)"
 	exit 1
 fi
 
@@ -96,6 +96,12 @@ PID_OPENOCD=${!}
 
 # time for openocd to start
 sleep 3
+
+if [ ! -d /proc/${PID_OPENOCD} ]; then
+	echo "Failed to start openocd (Olimex connected?)"
+	unset PID_OPENOCD
+	exit 1
+fi
 
 # S25FS512S - disable 4-kB Erase (CR3NV - Uniform Sector Architecture)
 # TODO fslqspi read_register 0 0x04 != 0x08
