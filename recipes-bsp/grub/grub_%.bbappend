@@ -4,9 +4,9 @@ SRC_URI += "\
 	file://grub-install-emmc \
 "
 
-# grub-install-emmc
-RDEPENDS_${PN} += "dosfstools"
-RRECOMMENDS_${PN} += "kernel-module-vfat"
+# grub-install-emmc goes to grub-common package
+RDEPENDS_${PN}-common += "dosfstools"
+RRECOMMENDS_${PN}-common += "kernel-module-vfat"
 
 
 do_install_append() {
@@ -15,7 +15,7 @@ do_install_append() {
 }
 
 
-pkg_postinst_grub() {
+pkg_postinst_grub-common() {
 	if [ ! -x $D${base_bindir}/efibootmgr ]; then
 		echo -e "#!/bin/sh\nexit 0" > $D${base_bindir}/efibootmgr
 		chmod 0755 $D${base_bindir}/efibootmgr
