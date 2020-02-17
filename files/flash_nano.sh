@@ -11,10 +11,10 @@
 #		flash_nano.sh "RCW PFE"		: flash rcw image and pfe firmware
 #
 #	to flash the ethernet MAC addresses:
-#		PFE0_MAC=00:11:22:33:44:55 PFE1_MAC=00:22:33:44:55:66 flash_nano.sh MAC
+#		PFE_MAC0=00:11:22:33:44:55 PFE_MAC1=00:22:33:44:55:66 flash_nano.sh MAC
 #
 #	or with all other images:
-#		PFE0_MAC=00:11:22:33:44:55 PFE1_MAC=00:22:33:44:55:66 flash_nano.sh
+#		PFE_MAC0=00:11:22:33:44:55 PFE_MAC1=00:22:33:44:55:66 flash_nano.sh
 #
 ##
 
