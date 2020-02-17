@@ -25,13 +25,13 @@ fi
 
 WDIR=tmp-glibc
 
-[ ! -d ${WDIR}/sysroots ] \
-	&& WDIR=build/${WDIR}
+if [ ! -d ${WDIR} ]; then
+	WDIR=build*/${WDIR}
 
-PATH=${PWD}/$(find ${WDIR}/sysroots -name openocd | sed -n '/bin\/openocd/{s/\/openocd//p}'):$PATH
-
-if [ -z "$(which openocd)" ]; then
-	MISSING="Failed to find openocd - Please build with: bitbake openocd-native build-sysroots\n"
+	if [ ! -d ${WDIR} ]; then
+		echo "Failed to find the yocto build directory."
+		exit 1
+	fi
 fi
 
 if [ -z "$(which atftpd)" ]; then
