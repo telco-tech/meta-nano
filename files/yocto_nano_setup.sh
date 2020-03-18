@@ -7,25 +7,33 @@ BBRANCH=1.44
 # yocto core
 # http://www.openembedded.org/wiki/OE-Core_Standalone_Setup
 
-git init || exit 1
-git remote add origin git://git.openembedded.org/openembedded-core || exit 1
-git fetch || exit 1
+if [ ! -d .git ]; then
+	git init || exit 1
+	git remote add origin git://git.openembedded.org/openembedded-core || exit 1
+	git fetch || exit 1
 
-git checkout ${YBRANCH} || exit 1
+	git checkout ${YBRANCH} || exit 1
+fi
 
-git clone git://git.openembedded.org/bitbake bitbake || exit 2
+if [ ! -d bitbake ]; then
+	git clone git://git.openembedded.org/bitbake bitbake || exit 2
 
-git -C bitbake checkout ${BBRANCH} || exit 2
+	git -C bitbake checkout ${BBRANCH} || exit 2
+fi
 
 # meta-openembedded
-git clone git://git.openembedded.org/meta-openembedded || exit 3
+if [ ! -d meta-openembedded ]; then
+	git clone git://git.openembedded.org/meta-openembedded || exit 3
 
-git -C meta-openembedded checkout ${YBRANCH} || exit 3
+	git -C meta-openembedded checkout ${YBRANCH} || exit 3
+fi
 
 # meta-freescale
-git clone git://git.yoctoproject.org/meta-freescale || exit 4
+if [ ! -d meta-freescale ]; then
+	git clone git://git.yoctoproject.org/meta-freescale || exit 4
 
-git -C meta-freescale checkout ${YBRANCH} || exit 4
+	git -C meta-freescale checkout ${YBRANCH} || exit 4
+fi
 
 # mata-nano & meta-freescale in die bblayers.conf.sample eintragen
 [ $(grep -c meta-nano meta/conf/bblayers.conf.sample) -eq 0 ] \
