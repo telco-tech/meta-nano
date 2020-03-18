@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..e310f57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,215 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
 + *
@@ -62,30 +62,15 @@ index 0000000..e310f57
 +		ethernet0 = &pfe_mac0;
 +		ethernet1 = &pfe_mac1;
 +	};
-+
-+	/*
-+	 * is this an bug on fsl-ls1012a.dtsi ?
-+	 * most of the devices use sysclk (clocks = <&clockgen 4 0>)
-+	 * but there is an divisor 1/4
-+	 *  - see reference manual "Clock subsystem block diagram - IP modules"
-+	 */
-+	qsysclk: qsysclk {
-+		compatible = "fixed-factor-clock";
-+		clocks = <&clockgen 4 0>;
-+		#clock-cells = <0>;
-+		clock-div = <4>;
-+		clock-mult = <1>;
-+	};
 +};
 +
 +&duart0 {
-+	clocks = <&qsysclk>;
++	clocks = <&clockgen 4 3>;
 +	status = "okay";
-+	/* qsysclk? */
 +};
 +
 +&i2c0 {
-+	clocks = <&qsysclk>;
++	clocks = <&clockgen 4 3>;
 +	clock-frequency = <400000>;
 +	status = "okay";
 +
@@ -148,7 +133,7 @@ index 0000000..e310f57
 +};
 +
 +&sata {
-+	clocks = <&qsysclk>;
++	clocks = <&clockgen 4 3>;
 +	status = "okay";
 +};
 +
@@ -165,6 +150,13 @@ index 0000000..e310f57
 +	non-removable;
 +	status = "okay";
 +};
++
++&usb0 {
++	status = "okay";
++	clock-names = "ref", "bus_early", "suspend";
++	clocks = <&clockgen 4 1>, <&clockgen 4 1>, <&clockgen 4 1>;
++};
++
 +
 +&pfe {
 +	status = "okay";
@@ -198,7 +190,7 @@ index 0000000..e310f57
 +		fsl,gemac-phy-id = <0x1>;	/* PHY_ID */
 +		fsl,mdio-mux-val = <0x0>;
 +		phy-mode = "rgmii-txid";	/* u-boot may change this */
-+		phy-handle = <&sgmii_phy2>;	/* u-boot may change this */
++		phy-handle = <&rgmii_phy2>;	/* u-boot may change this */
 +		fsl,pfe-phy-if-flags = <0x0>;
 +	};
 +
@@ -211,14 +203,12 @@ index 0000000..e310f57
 +		sgmii_phy1: ethernet-phy@2 {
 +			compatible = "ethernet-phy-id2000.a231";
 +			reg = <2>;
-+			ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_25_NS>;
-+			ti,tx-internal-delay = <DP83867_RGMIIDCTL_2_75_NS>;
 +			ti,fifo-depth = <DP83867_PHYCR_FIFO_DEPTH_4_B_NIB>;
 +			ti,led-1-source = DP83867_LEDCR_RECEIVE_OR_TRANSMIT_ACTIVITY;
 +		};
 +
 +		/* NOTE this is the phy from gamc 1 - connected to bus MDIO 0 */
-+		sgmii_phy2: ethernet-phy@1 {	/* u-boot may remove this */
++		rgmii_phy2: ethernet-phy@1 {	/* u-boot may remove this */
 +			compatible = "ethernet-phy-id2000.a231";
 +			reg = <1>;
 +			ti,rx-internal-delay = <DP83867_RGMIIDCTL_2_00_NS>;
