@@ -1,5 +1,5 @@
 diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
-index 69d7958ead1c..532ebb16ee41 100644
+index 434e5b248021..663bd4f9c3c4 100644
 --- a/drivers/net/phy/dp83867.c
 +++ b/drivers/net/phy/dp83867.c
 @@ -19,6 +19,7 @@
@@ -10,7 +10,7 @@ index 69d7958ead1c..532ebb16ee41 100644
  
  #include <dt-bindings/net/ti-dp83867.h>
  
-@@ -227,6 +228,57 @@ static int dp83867_of_init(struct phy_device *phydev)
+@@ -238,6 +239,57 @@ static int dp83867_of_init(struct phy_device *phydev)
  }
  #endif /* CONFIG_OF_MDIO */
  
@@ -34,7 +34,7 @@ index 69d7958ead1c..532ebb16ee41 100644
 +		if (off <= 0x1f)
 +			b[i] = phy_read(phydev, off);
 +		else
-+			b[i] = phy_read_mmd_indirect(phydev, off, DP83867_DEVADDR);
++			b[i] = phy_read_mmd(phydev, DP83867_DEVADDR, off);
 +	}
 +
 +	return i;
@@ -68,8 +68,8 @@ index 69d7958ead1c..532ebb16ee41 100644
  static int dp83867_config_init(struct phy_device *phydev)
  {
  	struct dp83867_private *dp83867;
-@@ -367,6 +419,9 @@ static struct phy_driver dp83867_driver[] = {
- 		.read_status	= genphy_read_status,
+@@ -382,6 +434,9 @@ static struct phy_driver dp83867_driver[] = {
+ 
  		.suspend	= genphy_suspend,
  		.resume		= genphy_resume,
 +

@@ -22,6 +22,7 @@ SRC_URI += "\
 	file://ksz9897_07_sgmii_phy_mode.patch \
 	file://ksz9897_08_single_led_mode.patch;apply=no \
 	file://dp83867_add_dt_led_setup.patch \
+	file://dp83867_sysfs_register_debug.patch;apply=no \
 	file://ls1012anano_dts.patch \
 	file://ls1012anano.cfg \
 	\
