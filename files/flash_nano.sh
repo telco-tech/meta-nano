@@ -138,7 +138,8 @@ for S in ${SECTIONS}; do
 			SUCCESS="wrote ${FILE_SIZE} bytes from file"
 
 			if [ "${LINE:0:${#SUCCESS}}" = "${SUCCESS}" ]; then
-				break
+ 				NCPID=$(ps -eo pid,args | sed -n '/nc localhost 4444/{/sed/d;s/^[[:space:]]*\([0-9]*\).*/\1/;p}')
+				kill ${NCPID}
 			fi
 		fi
 	done
