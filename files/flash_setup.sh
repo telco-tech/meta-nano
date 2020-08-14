@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ###
 #
@@ -12,6 +12,10 @@
 # IMAGE_BASE	- the image name, to install on emmc
 #
 ###
+
+# bootpd or atftpd may use sbin path
+[ "${PATH}" = "${PATH/sbin}" ] \
+	&& PATH=$PATH:/sbin:/usr/sbin/
 
 if [ -n "$(which openocd)" ]; then
 	echo -e "Warning: found openocd in PATH. This version may not work with ls1012a cpu\n"
