@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..e310f57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,225 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
 + *
@@ -77,6 +77,12 @@ index 0000000..e310f57
 +	pca9555: pca9555@20 {
 +		compatible = "nxp,pca9555";
 +		reg = <0x20>;
++		status = "okay";
++	};
++
++	pcf8523: pcf8523@68 {
++		compatible = "nxp,pcf8523";
++		reg = <0x68>;
 +		status = "okay";
 +	};
 +
