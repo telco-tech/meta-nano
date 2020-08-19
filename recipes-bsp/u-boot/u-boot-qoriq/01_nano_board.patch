@@ -553,7 +553,7 @@ new file mode 100644
 index 0000000000..d34b835a07
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,133 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -635,6 +635,7 @@ index 0000000000..d34b835a07
 +	"kernel_size=0x2800000\0"		\
 +	"kernelheader_size=0x40000\0"		\
 +	"console=ttyS0,115200\0"		\
++	"dtb_load=0xa0200000\0"			\
 +	BOOTENV					\
 +	"mmc_installer=echo Trying load installer from sd card..;"	\
 +		   "load mmc 0:2 $load_addr "	\
@@ -642,16 +643,37 @@ index 0000000000..d34b835a07
 +		   "pfe stop; " \
 +		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
 +	"dhcp_installer=echo Trying load installer from network..;"	\
-+		   "env exists ethaddr || setenv ethaddr 00:11:22:33:44:55;" \
++		   "setenv ethaddr 00:11:22:33:44:55;" \
 +		   "dhcp $load_addr; "	\
 +		   "pfe stop; " \
 +		   "setenv bootargs console=$console; " \
 +		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
-+	"emmc_bootcmd=echo Trying load from emmc..;"	\
-+		   "if load mmc 1:1 $load_addr /boot/itbImage; then " \
-+		   "setenv bootargs console=$console root=/dev/mmcblk1p1 rootwait; " \
-+		   "pfe stop; " \
-+		   "bootm $load_addr; fi\0" \
++	"efi_env=" \
++		   "mmc dev 1 1; " \
++		   "mw $dtb_load 62757267 1; " \
++		   "mmc read $load_addr 0 1; " \
++		   "mmc rescan; " \
++		   "if cmp $load_addr $dtb_load 1; " \
++		      "then env import -t $load_addr; " \
++		   "fi\0" \
++	"emmc_bootcmd=" \
++		   "run efi_env; " \
++		   "if test -n $grubefi_start; " \
++		      "then echo Trying load efi bootmgr from boot0 device...;" \
++		      "mmc dev 1 1; " \
++		      "mmc read $load_addr $grubefi_start $grubefi_size; " \
++		      "if test -n $dtb_start; " \
++		         "then mmc read $dtb_load $dtb_start $dtb_size; " \
++		      "fi; " \
++		      "pfe stop; " \
++		      "mmc dev 1;" \
++		      "bootefi $load_addr $dtb_load; " \
++		   "elif load mmc 1:1 $load_addr /boot/itbImage; then " \
++		      "echo Trying load from emmc..;"	\
++		      "setenv bootargs console=$console root=/dev/mmcblk1p1 rootwait; " \
++		      "pfe stop; " \
++		      "bootm $load_addr; fi\0" \
++		   "fi\0" \
 +	"mmc_bootcmd=echo Trying load from sd card..;"	\
 +		   "if load mmc 0:1 $load_addr /itbImage; then " \
 +		   "setenv bootargs console=$console root=/dev/mmcblk0p1 rootwait; " \

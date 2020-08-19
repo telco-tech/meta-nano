@@ -1,0 +1,13 @@
+diff --git a/disk/part_dos.c b/disk/part_dos.c
+index 936cee0d36..7f1e3eed3f 100644
+--- a/disk/part_dos.c
++++ b/disk/part_dos.c
+@@ -198,7 +198,7 @@ static int part_get_info_extended(struct blk_desc *dev_desc,
+ 	}
+ 	if (buffer[DOS_PART_MAGIC_OFFSET] != 0x55 ||
+ 		buffer[DOS_PART_MAGIC_OFFSET + 1] != 0xaa) {
+-		printf ("bad MBR sector signature 0x%02x%02x\n",
++		debug ("bad MBR sector signature 0x%02x%02x\n",
+ 			buffer[DOS_PART_MAGIC_OFFSET],
+ 			buffer[DOS_PART_MAGIC_OFFSET + 1]);
+ 		return -1;
