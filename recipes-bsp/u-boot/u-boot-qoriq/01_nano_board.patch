@@ -174,7 +174,7 @@ new file mode 100644
 index 0000000000..5256efadf9
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/eth.c
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,117 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
 + * Copyright 2017 NXP
@@ -198,6 +198,7 @@ index 0000000000..5256efadf9
 +#include <net/pfe_eth/pfe_eth.h>
 +#include <dm/platform_data/pfe_dm_eth.h>
 +#include <i2c.h>
++#include <environment.h>
 +
 +#define DEFAULT_PFE_MDIO0_NAME "PFE_MDIO0"
 +#define DEFAULT_PFE_MDIO1_NAME "PFE_MDIO1"
@@ -209,6 +210,7 @@ index 0000000000..5256efadf9
 +	struct mii_dev *bus;
 +	struct pfe_mdio_info mac_mdio_info;
 +	struct pfe_eth_dev *priv = dev_get_priv(dev);
++	char *p;
 +
 +	if (! init_done) {
 +		init_pfe_scfg_dcfg_regs();
@@ -244,6 +246,15 @@ index 0000000000..5256efadf9
 +	else /* MAC2 */
 +		pfe_set_phy_address_mode(1, CONFIG_PFE_EMAC2_PHY_ADDR,
 +				     PHY_INTERFACE_MODE_RGMII_TXID);
++
++	p = CONFIG_SYS_PFE_HW_ADDR;
++
++	if (p[0] != 0xff)
++		eth_env_set_enetaddr("ethaddr", p);
++
++	if (p[6] != 0xff)
++		eth_env_set_enetaddr("eth1addr", p + 6);
++
 +#endif
 +	return 0;
 +}
@@ -482,7 +493,7 @@ index 0000000000..374791f6ce
 +CONFIG_ARM=y
 +CONFIG_TARGET_LS1012ANANO=y
 +CONFIG_SYS_TEXT_BASE=0x40100000
-+CONFIG_FSL_LS_PPA=y
++# CONFIG_FSL_LS_PPA is not set
 +CONFIG_QSPI_AHB_INIT=y
 +CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nano"
 +# CONFIG_SYS_MALLOC_F is not set
