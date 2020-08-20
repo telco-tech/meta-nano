@@ -37,7 +37,7 @@ new file mode 100644
 index 000000000..2f540bccf
 --- /dev/null
 +++ b/src/flash/nor/fslqspi.c
-@@ -0,0 +1,1436 @@
+@@ -0,0 +1,1437 @@
 +/***************************************************************************
 + *   Copyright (C) 2018 Mario Bernhard <bernhard@f1-gmbh.de>               *
 + *                                                                         *
@@ -1473,6 +1473,7 @@ index 000000000..2f540bccf
 +	.protect_check = fslqspi_protect_check,
 +	.info = fslqspi_get_info,
 +	.commands = fslqspi_command_handlers,
++	.free_driver_priv = default_flash_free_driver_priv,
 +};
 diff --git a/src/flash/nor/spi.c b/src/flash/nor/spi.c
 index af72ffc40..c839e4c75 100644
