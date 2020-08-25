@@ -1,7 +1,20 @@
+SUMMARY = "A small image just capable of allowing a device to boot and is suitable for some tests"
 
-PACKAGE_INSTALL_append = "\
+IMAGE_INSTALL = "\
+	packagegroup-core-boot \
 	packagegroup-nano \
+	packagegroup-nano-tests \
+	packagegroup-nano-benchmarks \
+	packagegroup-core-ssh-dropbear \
+	packagegroup-core-tools-debug \
+	${CORE_IMAGE_EXTRA_INSTALL} \
 "
+
+IMAGE_LINGUAS = " "
+
+LICENSE = "MIT"
+
+inherit core-image
 
 do_setup_modprobe_d() {
 

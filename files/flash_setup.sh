@@ -120,7 +120,7 @@ fi
 	&& IMAGE_INSTALL=itbImage-ls1012anano-install-ls1012anano.bin
 
 [ -z "${IMAGE_BASE}" ] \
-	&& IMAGE_BASE=core-image-minimal-ls1012anano.tar.gz
+	&& IMAGE_BASE=nano-image-ls1012anano.tar.gz
 
 
 # atftpd setup
