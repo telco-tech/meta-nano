@@ -63,7 +63,7 @@ fi
 cd oe-core
 export MACHINE=ls1012anano
 . ./oe-init-build-env
-bitbake linux-qoriq openocd-native core-image-minimal
+bitbake linux-qoriq openocd-native nano-image
 bitbake build-sysroots
 
 exit 0
