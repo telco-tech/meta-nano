@@ -80,9 +80,9 @@ index 0000000..e310f57
 +		status = "okay";
 +	};
 +
-+	pcf8523: pcf8523@68 {
-+		compatible = "nxp,pcf8523";
-+		reg = <0x68>;
++	mcp7941x: mcp7941x@6f {
++		compatible = "microchip,mcp7941x";
++		reg = <0x6f>;
 +		status = "okay";
 +	};
 +
