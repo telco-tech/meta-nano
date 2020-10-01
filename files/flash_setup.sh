@@ -125,49 +125,66 @@ fi
 
 # atftpd setup
 
-echo "Starting tftp daemon..."
+DRUN=
 
-sudo atftpd --daemon ${PWD}/${WDIR}/deploy/images/ls1012anano || exit
-
-PID_ATFTPD=${!}
-
-if [ -z "${PID_ATFTPD}" ]; then
-	for I in $(find /proc -maxdepth 1 -type d -name "[0-9]*"); do
-		if [ $(grep -c "^atftpd" ${I}/cmdline) -gt 0 ]; then
-			PID_ATFTPD=${I##*/}
-			break
-		fi
-	done
+if killall -0 atftpd 2>/dev/null; then
+	read -n1 -p "Restart tftp daemon? [Y/n]: " DRUN
 fi
 
+if [ -z "${DRUN}" -o "${DRUN}" = "Y" -o "${DRUN}" = "y" ]; then
+
+	echo "Starting tftp daemon..."
+
+	sudo atftpd --daemon ${PWD}/${WDIR}/deploy/images/ls1012anano || exit
+
+	PID_ATFTPD=${!}
+
+	if [ -z "${PID_ATFTPD}" ]; then
+		for I in $(find /proc -maxdepth 1 -type d -name "[0-9]*"); do
+			if [ $(grep -c "^atftpd" ${I}/cmdline) -gt 0 ]; then
+				PID_ATFTPD=${I##*/}
+				break
+			fi
+		done
+	fi
+fi
 
 # bootpd setup
 
-BOOTPTAB=$(tempfile)
+DRUN=
 
-cat << EOF > ${BOOTPTAB}
+if killall -0 bootpd 2>/dev/null; then
+	read -n1 -p "Restart bootpd daemon? [Y/n]: " DRUN
+fi
+
+if [ -z "${DRUN}" -o "${DRUN}" = "Y" -o "${DRUN}" = "y" ]; then
+
+	BOOTPTAB=$(tempfile)
+
+	cat << EOF > ${BOOTPTAB}
 install:\\
-        :ht=ethernet:\\
-        :ha=001122334455:\\
-        :ip=${IP_INSTALL}:\\
-        :sm=${IP_NETMASK}:\\
-        :sa=${IP_SERVER}:\\
-        :bf=${IMAGE_INSTALL}:
+	:ht=ethernet:\\
+	:ha=001122334455:\\
+	:ip=${IP_INSTALL}:\\
+	:sm=${IP_NETMASK}:\\
+	:sa=${IP_SERVER}:\\
+	:bf=${IMAGE_INSTALL}:
 
 nano:\\
-        :ht=ethernet:\\
-        :ha=001122334456:\\
-        :ip=${IP_NANO}:\\
-        :sm=${IP_NETMASK}:\\
-        :sa=${IP_SERVER}:\\
-        :bf=${IMAGE_BASE}:
+	:ht=ethernet:\\
+	:ha=001122334456:\\
+	:ip=${IP_NANO}:\\
+	:sm=${IP_NETMASK}:\\
+	:sa=${IP_SERVER}:\\
+	:bf=${IMAGE_BASE}:
 EOF
 
-echo "Starting bootp daemon..."
+	echo "Starting bootp daemon..."
 
-sudo bootpd -d -s ${BOOTPTAB} &
+	sudo bootpd -d -s ${BOOTPTAB} &
 
-PID_BOOTPD=${!}
+	PID_BOOTPD=${!}
+fi
 
 ERROR=0
 
