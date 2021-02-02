@@ -1,0 +1,17 @@
+
+xhci-hcd xhci-hcd.0.auto: Error while assigning device slot ID
+xhci-hcd xhci-hcd.0.auto: Max number of devices this xHCI host supports is 127.
+usb usb2-port1: couldn't allocate usb_device
+
+diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi b/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
+index df48daea83a2..0ca51cbd1976 100644
+--- a/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
++++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
+@@ -452,7 +452,6 @@
+ 			snps,dis_rxdet_inp3_quirk;
+ 			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
+ 			snps,host-vbus-glitches;
+-			dma-coherent;
+ 		};
+ 
+ 		sata: sata@3200000 {

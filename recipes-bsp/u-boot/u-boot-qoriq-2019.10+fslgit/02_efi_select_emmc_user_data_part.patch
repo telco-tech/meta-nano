@@ -1,8 +1,8 @@
 diff --git a/lib/efi_loader/efi_disk.c b/lib/efi_loader/efi_disk.c
-index c037526ad2..68cdf7e203 100644
+index 9007a5f77f..42d0363867 100644
 --- a/lib/efi_loader/efi_disk.c
 +++ b/lib/efi_loader/efi_disk.c
-@@ -412,6 +412,9 @@ efi_status_t efi_disk_register(void)
+@@ -462,6 +462,9 @@ efi_status_t efi_disk_register(void)
  			if (desc->type == DEV_TYPE_UNKNOWN)
  				continue;
  

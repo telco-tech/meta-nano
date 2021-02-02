@@ -2,85 +2,91 @@
 
 EMMC=/dev/mmcblk1
 
-mount -tdevtmpfs none /dev
-mount -tproc none /proc
-
-modprobe pfe
-
-echo "Wait for the EMMC..."
-
 while : ; do
 
-	[ -b ${EMMC} ] \
-		&& break
+	mount -tdevtmpfs none /dev || ( echo "Failed to mount dev"; break )
+	mount -tproc none /proc || ( echo "Failed to mount proc"; break )
 
-	sleep 1
-done
+	modprobe pfe || ( echo "Failed to load pfe driver"; break )
 
-echo "Create Partition..."
-echo ",," | sfdisk /dev/mmcblk1
+	echo "Wait for the EMMC..."
 
-echo "Create Filesystem..."
-mkfs.ext4 -F -O64bit /dev/mmcblk1p1
+	while : ; do
 
-mount /dev/mmcblk1p1 /mnt
+		[ -b ${EMMC} ] \
+			&& break
 
-# ether address like bootptab
-ip link set dev eth0 address 00:11:22:33:44:56
-ip link set up eth0
+		sleep 1
+	done
 
-# wait for eth0 is up (without this, udhcpc will not work)
-while : ; do
-	sleep 1
+	echo "Create Partition..."
+	echo ",," | sfdisk /dev/mmcblk1
 
-	if [ $(dmesg | tail | grep -c "pfe 4000000.pfe eth0: Link is Up") -gt 0 ]; then
+	echo "Create Filesystem..."
+	mkfs.ext4 -F -O64bit /dev/mmcblk1p1 || ( echo "Failed to create the filesystem"; break )
+
+	mount /dev/mmcblk1p1 /mnt || ( echo "Failed to mount the target device"; break )
+
+	# ether address like bootptab
+	ip link set dev eth0 address 00:11:22:33:44:56
+	ip link set up eth0
+
+	# wait for eth0 is up (without this, udhcpc will not work)
+	while : ; do
 		sleep 1
 
-		udhcpc -f -q -n -t 2 -i eth0
-
-		if [ ! -f /etc/setup ]; then
-			echo "Failed to get Setup Information from bootpd - try again..."
-
-			ip link set down eth0
+		if [ $(dmesg | tail | grep -c "pfe 4000000.pfe eth0: Link is Up") -gt 0 ]; then
 			sleep 1
-			ip link set up eth0
 
-		else
-			break
+			udhcpc -f -q -n -t 2 -i eth0
+
+			if [ ! -f /etc/setup ]; then
+				echo "Failed to get Setup Information from bootpd - try again..."
+
+				ip link set down eth0
+				sleep 1
+				ip link set up eth0
+
+			else
+				break
+			fi
 		fi
+	done
+
+	. /etc/setup
+
+	if [ -z "${BOOTFILE}" -o -z "${SIADDR}" ]; then
+		echo "Missing Setup Information from bootpd"
+		break
 	fi
+
+	echo "Install Filesystem..."
+
+	tftp -g -r ${BOOTFILE} -l - ${SIADDR} | tar -C /mnt -xzf -
+
+	if [ ${?} -ne 0 ]; then
+		echo "Failed to get the ${BOOTFILE}"
+		break
+	fi
+
+	tftp -g -r itbImage -l /mnt/boot/itbImage ${SIADDR}
+
+	if [ ${?} -ne 0 ]; then
+		echo "Failed to get the kernel image (itbImage)"
+		break
+	fi
+
+	sync
+	umount /mnt
+
+	echo "+-------------------------------------------+"
+	echo "|                                           |"
+	echo "|          Installation success             |"
+	echo "|                                           |"
+	echo "+-------------------------------------------+"
+
+	break
 done
-
-. /etc/setup
-
-if [ -z "${BOOTFILE}" -o -z "${SIADDR}" ]; then
-	echo "Missing Setup Information from bootpd"
-	exit 1
-fi
-
-echo "Install Filesystem..."
-
-tftp -g -r ${BOOTFILE} -l - ${SIADDR} | tar -C /mnt -xzf -
-
-if [ ${?} -ne 0 ]; then
-	echo "Failed to get the ${BOOTFILE}"
-	exit 1
-fi
-
-tftp -g -r itbImage -l /mnt/boot/itbImage ${SIADDR}
-
-if [ ${?} -ne 0 ]; then
-	echo "Failed to get the kernel image (itbImage)"
-	exit 1
-fi
-
-umount /mnt
-
-echo "+-------------------------------------------+"
-echo "|                                           |"
-echo "|          Installation success             |"
-echo "|                                           |"
-echo "+-------------------------------------------+"
 
 /bin/sh
 

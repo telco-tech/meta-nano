@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ethernet/micrel/Kconfig b/drivers/net/ethernet/micrel/Kconfig
-index b7e2f49696b7..5ec56189fb08 100644
+index b9c4d48e28e4..e136388a71de 100644
 --- a/drivers/net/ethernet/micrel/Kconfig
 +++ b/drivers/net/ethernet/micrel/Kconfig
-@@ -61,4 +61,6 @@ config KSZ884X_PCI
+@@ -53,4 +53,6 @@ config KSZ884X_PCI
  	  To compile this driver as a module, choose M here. The module
  	  will be called ksz884x.
  
@@ -10,15 +10,14 @@ index b7e2f49696b7..5ec56189fb08 100644
 +
  endif # NET_VENDOR_MICREL
 diff --git a/drivers/net/ethernet/micrel/Makefile b/drivers/net/ethernet/micrel/Makefile
-index 848fc1c5a5dc..7b3468a29377 100644
+index 6d8ac5527aef..97bacb84be7e 100644
 --- a/drivers/net/ethernet/micrel/Makefile
 +++ b/drivers/net/ethernet/micrel/Makefile
-@@ -8,3 +8,5 @@ obj-$(CONFIG_KS8842) += ks8842.o
+@@ -7,3 +7,4 @@ obj-$(CONFIG_KS8842) += ks8842.o
  obj-$(CONFIG_KS8851) += ks8851.o
  obj-$(CONFIG_KS8851_MLL) += ks8851_mll.o
  obj-$(CONFIG_KSZ884X_PCI) += ksz884x.o
 +obj-$(CONFIG_HAVE_KSZ9897) += ksz9897/
-+
 diff --git a/drivers/net/ethernet/micrel/ksz9897/Kconfig b/drivers/net/ethernet/micrel/ksz9897/Kconfig
 new file mode 100644
 index 000000000000..aeab1429257d
@@ -372,14 +371,14 @@ index 000000000000..1791d23b081d
 +#endif /*  __HSR_PRIVATE_H */
 diff --git a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
 new file mode 100644
-index 000000000000..131169999660
+index 000000000000..6f5988c81882
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
 @@ -0,0 +1,653 @@
 +/**
 + * Microchip KSZ9897 I2C driver
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -486,8 +485,8 @@ index 000000000000..131169999660
 +#endif
 +
 +
-+#define SW_DRV_RELDATE			"Nov 2, 2019"
-+#define SW_DRV_VERSION			"1.2.2"
++#define SW_DRV_RELDATE			"Sep 16, 2020"
++#define SW_DRV_VERSION			"1.2.3"
 +
 +/* -------------------------------------------------------------------------- */
 +
@@ -551,10 +550,10 @@ index 000000000000..131169999660
 +
 +	if (i2c_transfer(adapter, &msg, 1) != 1)
 +		pr_alert("i2c_transfer() failed\n");
-+	sw->ops->chk_regs(sw, addr, txb, txl);
++	sw->ops->chk_regs(sw, addr, &hw_priv->txd[I2C_CMD_LEN], txl);
 +}
 +
-+static void i2c_wrreg_size(struct sw_priv *priv, u8 reg, unsigned val,
++static void i2c_wrreg_size(struct sw_priv *priv, u32 reg, unsigned val,
 +			   size_t size)
 +{
 +	struct i2c_hw_priv *hw_priv = priv->hw_dev;
@@ -1031,14 +1030,14 @@ index 000000000000..131169999660
 +#endif
 diff --git a/drivers/net/ethernet/micrel/ksz9897/iba-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/iba-ksz9897.c
 new file mode 100644
-index 000000000000..a34cc5fa963d
+index 000000000000..03fb9e1c9d74
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/iba-ksz9897.c
 @@ -0,0 +1,113 @@
 +/**
 + * Microchip KSZ9897 IBA driver
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + * Copyright (c) 2013-2015 Micrel, Inc.
 + *
 + * Copyright 2009 Simtec Electronics
@@ -1129,8 +1128,8 @@ index 000000000000..a34cc5fa963d
 +
 +#define KS9897MLI_DEV0			"ksz9897"
 +
-+#define SW_DRV_RELDATE			"Nov 2, 2019"
-+#define SW_DRV_VERSION			"1.2.2"
++#define SW_DRV_RELDATE			"Sep 16, 2020"
++#define SW_DRV_VERSION			"1.2.3"
 +
 +/* -------------------------------------------------------------------------- */
 +
@@ -3423,14 +3422,14 @@ index 000000000000..18c8b1dc9f25
 +
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_common.h b/drivers/net/ethernet/micrel/ksz9897/ksz_common.h
 new file mode 100644
-index 000000000000..51c2133e8d55
+index 000000000000..76a5b295060a
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_common.h
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,117 @@
 +/**
 + * Microchip Ethernet driver common header
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + *	Tristram Ha <Tristram.Ha@microchip.com>
 + *
 + * Copyright (c) 2009-2011 Micrel, Inc.
@@ -3511,6 +3510,11 @@ index 000000000000..51c2133e8d55
 +struct ksz_dev_attr {
 +	struct device_attribute dev_attr;
 +	char dev_name[DEV_NAME_SIZE];
++};
++
++struct ksz_dev_major {
++	void *dev;
++	int major;
 +};
 +
 +struct file_dev_info {
@@ -15867,14 +15871,14 @@ index 000000000000..99f28fbfc224
 +#endif
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_mrp.c b/drivers/net/ethernet/micrel/ksz9897/ksz_mrp.c
 new file mode 100644
-index 000000000000..2eb94e7029fb
+index 000000000000..4738ba0c48f8
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_mrp.c
-@@ -0,0 +1,8684 @@
+@@ -0,0 +1,8692 @@
 +/**
 + * Microchip MRP driver code
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + *	Tristram Ha <Tristram.Ha@microchip.com>
 + *
 + * Copyright (c) 2014-2015 Micrel, Inc.
@@ -21911,7 +21915,7 @@ index 000000000000..2eb94e7029fb
 +				data[3] = 'r';
 +				data[4] = mrp->version;
 +				data[5] = mrp->ports;
-+				if (!access_ok(VERIFY_WRITE, req->param.data,
++				if (!access_ok(req->param.data,
 +						6) ||
 +						copy_to_user(req->param.data,
 +						data, 6)) {
@@ -21975,7 +21979,7 @@ index 000000000000..2eb94e7029fb
 +			result = proc_mrp_hw_access(mrp,
 +				maincmd, subcmd, 0,
 +				data, len, &output, NULL, true);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					param_size) ||
 +					copy_to_user(req->param.data, data,
 +					param_size)) {
@@ -22622,23 +22626,12 @@ index 000000000000..2eb94e7029fb
 +#endif
 +#endif
 +
-+static void setup_mrp(struct mrp_info *mrp, struct net_device *dev)
++static void sw_setup_mrp(struct ksz_sw *sw)
 +{
 +	struct ksz_mac_table *entry;
 +	struct ksz_alu_table *alu;
 +	int i;
 +	int j;
-+	struct ksz_sw *sw = mrp->parent;
-+
-+#ifdef CONFIG_KSZ_MRP
-+
-+#ifndef NETIF_F_HW_VLAN_CTAG_FILTER
-+	prandom32_seed(&rnd, get_random_int());
-+#endif
-+	memcpy(mrp->cvlan_addr, vlan_mrp_app.group_address, ETH_ALEN);
-+	memcpy(mrp->svlan_addr, vlan_mrp_app.group_address, ETH_ALEN);
-+	mrp->svlan_addr[5] = 0x0D;
-+#endif
 +
 +	i = sw->info->multi_sys;
 +	for (j = 0; j < 3; j++) {
@@ -22659,6 +22652,19 @@ index 000000000000..2eb94e7029fb
 +				 false, 0);
 +	}
 +	sw->info->multi_sys = i;
++}  /* sw_setup_mrp */
++
++static void setup_mrp(struct mrp_info *mrp, struct net_device *dev)
++{
++#ifdef CONFIG_KSZ_MRP
++
++#ifndef NETIF_F_HW_VLAN_CTAG_FILTER
++	prandom32_seed(&rnd, get_random_int());
++#endif
++	memcpy(mrp->cvlan_addr, vlan_mrp_app.group_address, ETH_ALEN);
++	memcpy(mrp->svlan_addr, vlan_mrp_app.group_address, ETH_ALEN);
++	mrp->svlan_addr[5] = 0x0D;
++#endif
 +}  /* setup_mrp */
 +
 +#ifdef CONFIG_KSZ_MRP
@@ -23537,9 +23543,11 @@ index 000000000000..2eb94e7029fb
 +		if (regeneration_hack)
 +			len += sprintf(buf + len,
 +				"regeneration"NL);
++#ifdef CONFIG_1588_PTP
 +		if (ba_hack)
 +			len += sprintf(buf + len,
 +				"BA"NL);
++#endif
 +		if (mrp_10_1_2f_hack)
 +			len += sprintf(buf + len,
 +				"MRP.10.1.2F"NL);
@@ -23629,8 +23637,10 @@ index 000000000000..2eb94e7029fb
 +			fqtss_34_2_9b_hack = true;
 +		else if (!strncmp(buf, "fqtss", 5))
 +			fqtss_hack = true;
++#ifdef CONFIG_1588_PTP
 +		else if (!strncmp(buf, "ba", 2))
 +			ba_hack = true;
++#endif
 +		else if (!strncmp(buf, "regeneration", 12)) {
 +			if (!regeneration_hack) {
 +				uint n;
@@ -23643,7 +23653,9 @@ index 000000000000..2eb94e7029fb
 +				}
 +			}
 +		} else if (!strncmp(buf, "reset", 5)) {
++#ifdef CONFIG_1588_PTP
 +			ba_hack = false;
++#endif
 +			mrp_10_1_2f_hack = false;
 +			mrp_10_1_8a_hack = false;
 +			mrp_10_5_1_hack = false;
@@ -25113,10 +25125,10 @@ index 000000000000..491f311a4a64
 +#endif
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_mstp.c b/drivers/net/ethernet/micrel/ksz9897/ksz_mstp.c
 new file mode 100644
-index 000000000000..d0dcb3dc5bd8
+index 000000000000..0a1adfe63589
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_mstp.c
-@@ -0,0 +1,6524 @@
+@@ -0,0 +1,6526 @@
 +/**
 + * Microchip MSTP code
 + *
@@ -27279,8 +27291,11 @@ index 000000000000..d0dcb3dc5bd8
 +	COPY(rootPortId, best_path.port_id);
 +
 +	if (root_Priority) {
-+		u8 num = root_PortId.num - 1;
++		struct ksz_stp_info *stp = br->parent;
++		struct ksz_sw *sw = stp->sw_dev;
++		uint num;
 +
++		num = get_phy_port(sw, root_PortId.num);
 +		p = &br->ports[num];
 +		COPY(rootTimes, portTimes);
 +		if (!rcvdInternal)
@@ -31569,7 +31584,6 @@ index 000000000000..d0dcb3dc5bd8
 +	}
 +
 +	for (br->MSTI = 0; br->MSTI < NUM_OF_MSTI; br->MSTI++) {
-+		num = 1;
 +		for (i = 0; i < br->port_cnt; i++) {
 +			p = &br->ports[i];
 +			p->MSTI = br->MSTI;
@@ -32103,14 +32117,14 @@ index 000000000000..479f8ce6a943
 +#endif
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
 new file mode 100644
-index 000000000000..7da4979c14d9
+index 000000000000..6bcb4ced9e1f
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_ptp_9897.c
-@@ -0,0 +1,6952 @@
+@@ -0,0 +1,6975 @@
 +/**
 + * Microchip PTP common code
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + *	Tristram Ha <Tristram.Ha@microchip.com>
 + *
 + * Copyright (c) 2009-2015 Micrel, Inc.
@@ -37081,6 +37095,7 @@ index 000000000000..7da4979c14d9
 +			parent->output = *data;
 +			break;
 +		case DEV_PTP_CLK:
++			parent->option &= 0xffff;
 +			if (parent->option)
 +				result = proc_ptp_adj_clk(ptp, data,
 +					parent->option);
@@ -37158,6 +37173,7 @@ index 000000000000..7da4979c14d9
 +		case DEV_PTP_TOUT:
 +			break;
 +		case DEV_PTP_CLK:
++			parent->option &= 0xffff;
 +			if ((ptp->op_mode > 0 || ptp->cap) && parent->option) {
 +				parent->output = ptp->drift;
 +				break;
@@ -38033,7 +38049,7 @@ index 000000000000..7da4979c14d9
 +				data[7] = 0;
 +			}
 +			data[5] = p;
-+			if (!access_ok(VERIFY_WRITE, req->param.data, len) ||
++			if (!access_ok(req->param.data, len) ||
 +			    copy_to_user(req->param.data, data, len)) {
 +				err = -EFAULT;
 +				goto dev_ioctl_done;
@@ -38082,7 +38098,7 @@ index 000000000000..7da4979c14d9
 +			if (!result) {
 +				len = 6;
 +				__put_user(output, &req->output);
-+				if (!access_ok(VERIFY_WRITE, req->param.data,
++				if (!access_ok(req->param.data,
 +				    len) ||
 +				    copy_to_user(req->param.data, data, len)) {
 +					err = -EFAULT;
@@ -38244,7 +38260,7 @@ index 000000000000..7da4979c14d9
 +				maincmd, subcmd, 0,
 +				data, len, info, &output,
 +				true);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_cfg_options)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_cfg_options))) {
@@ -38272,7 +38288,7 @@ index 000000000000..7da4979c14d9
 +					wait);
 +				if (!wait)
 +					break;
-+				if (!access_ok(VERIFY_WRITE, req->param.data,
++				if (!access_ok(req->param.data,
 +				    len) || copy_to_user(req->param.data,
 +				    data, len)) {
 +					err = -EFAULT;
@@ -38302,7 +38318,7 @@ index 000000000000..7da4979c14d9
 +				data, len, info, &output,
 +				true);
 +			__put_user(output, &req->output);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_clk_options)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_clk_options))) {
@@ -38320,7 +38336,7 @@ index 000000000000..7da4979c14d9
 +				maincmd, subcmd, output,
 +				data, len, info, &output,
 +				true);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_delay_values)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_delay_values))) {
@@ -38347,7 +38363,7 @@ index 000000000000..7da4979c14d9
 +
 +			if ((ptp->op_mode > 0 || ptp->cap) && output)
 +				id = &ptp->masterIdentity;
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_clock_identity)) ||
 +					copy_to_user(req->param.data, id,
 +					sizeof(struct ptp_clock_identity))) {
@@ -38366,7 +38382,7 @@ index 000000000000..7da4979c14d9
 +				maincmd, subcmd, output,
 +				data, len, info, &output,
 +				true);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_delay_values)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_delay_values))) {
@@ -38386,7 +38402,7 @@ index 000000000000..7da4979c14d9
 +			result = proc_ptp_get_timestamp(ptp, data, info);
 +			if (result)
 +				goto dev_ioctl_resp;
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_ts_options)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_ts_options))) {
@@ -38405,7 +38421,7 @@ index 000000000000..7da4979c14d9
 +			__put_user(output, &req->output);
 +			if (result)
 +				goto dev_ioctl_resp;
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_msg_options)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_msg_options))) {
@@ -38423,7 +38439,7 @@ index 000000000000..7da4979c14d9
 +				maincmd, subcmd, output,
 +				data, len, info, &output,
 +				true);
-+			if (!access_ok(VERIFY_WRITE, req->param.data,
++			if (!access_ok(req->param.data,
 +					sizeof(struct ptp_delay_values)) ||
 +					copy_to_user(req->param.data, data,
 +					sizeof(struct ptp_delay_values))) {
@@ -38471,9 +38487,9 @@ index 000000000000..7da4979c14d9
 +	if (_IOC_NR(cmd) > DEV_IOC_MAX)
 +		return -ENOTTY;
 +	if (_IOC_DIR(cmd) & _IOC_READ)
-+		err = !access_ok(VERIFY_WRITE, (void *) arg, _IOC_SIZE(cmd));
++		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 +	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-+		err = !access_ok(VERIFY_READ, (void *) arg, _IOC_SIZE(cmd));
++		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 +	if (err) {
 +		printk(KERN_ALERT "err fault"NL);
 +		return -EFAULT;
@@ -38601,15 +38617,15 @@ index 000000000000..7da4979c14d9
 +	return result;
 +}  /* ptp_dev_write */
 +
-+static struct ptp_info *ptp_priv;
++static struct ksz_dev_major ptp_majors[MAX_SW_DEVICES];
 +
-+static struct file_dev_info *alloc_dev_info(uint minor)
++static struct file_dev_info *alloc_dev_info(struct ptp_info *ptp, uint minor)
 +{
 +	struct file_dev_info *info;
 +
 +	info = kzalloc(sizeof(struct file_dev_info), GFP_KERNEL);
 +	if (info) {
-+		info->dev = ptp_priv;
++		info->dev = ptp;
 +		sema_init(&info->sem, 1);
 +		mutex_init(&info->lock);
 +		init_waitqueue_head(&info->wait_msg);
@@ -38622,8 +38638,8 @@ index 000000000000..7da4979c14d9
 +		info->write_buf = kzalloc(info->write_len, GFP_KERNEL);
 +
 +		info->minor = minor;
-+		info->next = ptp_priv->dev[minor];
-+		ptp_priv->dev[minor] = info;
++		info->next = ptp->dev[minor];
++		ptp->dev[minor] = info;
 +	}
 +	return info;
 +}  /* alloc_dev_info */
@@ -38658,11 +38674,22 @@ index 000000000000..7da4979c14d9
 +	struct file_dev_info *info = (struct file_dev_info *)
 +		filp->private_data;
 +	uint minor = MINOR(inode->i_rdev);
++	uint major = MAJOR(inode->i_rdev);
++	struct ptp_info *ptp = NULL;
++	int i;
 +
 +	if (minor > 1)
 +		return -ENODEV;
++	for (i = 0; i < MAX_SW_DEVICES; i++) {
++		if (ptp_majors[i].major == major) {
++			ptp = ptp_majors[i].dev;
++			break;
++		}
++	}
++	if (!ptp)
++		return -ENODEV;
 +	if (!info) {
-+		info = alloc_dev_info(minor);
++		info = alloc_dev_info(ptp, minor);
 +		if (info)
 +			filp->private_data = info;
 +		else
@@ -38693,9 +38720,10 @@ index 000000000000..7da4979c14d9
 +	.release	= ptp_dev_release,
 +};
 +
-+static struct class *ptp_class;
++static struct class *ptp_class[MAX_SW_DEVICES];
 +
-+static int init_ptp_device(int dev_major, char *dev_name, char *minor_name)
++static int init_ptp_device(int id, int dev_major, char *dev_name,
++			   char *minor_name)
 +{
 +	int result;
 +
@@ -38707,21 +38735,23 @@ index 000000000000..7da4979c14d9
 +	}
 +	if (0 == dev_major)
 +		dev_major = result;
-+	ptp_class = class_create(THIS_MODULE, dev_name);
-+	if (IS_ERR(ptp_class)) {
++	ptp_class[id] = class_create(THIS_MODULE, dev_name);
++	if (IS_ERR(ptp_class[id])) {
 +		unregister_chrdev(dev_major, dev_name);
 +		return -ENODEV;
 +	}
-+	device_create(ptp_class, NULL, MKDEV(dev_major, 0), NULL, dev_name);
-+	device_create(ptp_class, NULL, MKDEV(dev_major, 1), NULL, minor_name);
++	device_create(ptp_class[id], NULL, MKDEV(dev_major, 0), NULL,
++		      dev_name);
++	device_create(ptp_class[id], NULL, MKDEV(dev_major, 1), NULL,
++		      minor_name);
 +	return dev_major;
 +}  /* init_ptp_device */
 +
-+static void exit_ptp_device(int dev_major, char *dev_name)
++static void exit_ptp_device(int id, int dev_major, char *dev_name)
 +{
-+	device_destroy(ptp_class, MKDEV(dev_major, 1));
-+	device_destroy(ptp_class, MKDEV(dev_major, 0));
-+	class_destroy(ptp_class);
++	device_destroy(ptp_class[id], MKDEV(dev_major, 1));
++	device_destroy(ptp_class[id], MKDEV(dev_major, 0));
++	class_destroy(ptp_class[id]);
 +	unregister_chrdev(dev_major, dev_name);
 +}  /* exit_ptp_device */
 +
@@ -38850,11 +38880,16 @@ index 000000000000..7da4979c14d9
 +	init_msg_info(ptp->rx_msg_info, &ptp->rx_msg_lock);
 +	init_msg_info(ptp->tx_msg_info, &ptp->tx_msg_lock);
 +
-+	ptp_priv = ptp;
 +	sprintf(ptp->dev_name[0], "ptp_dev");
 +	sprintf(ptp->dev_name[1], "ptp_event");
-+	ptp->dev_major = init_ptp_device(0, ptp->dev_name[0],
++	if (sw->id) {
++		sprintf(ptp->dev_name[0], "ptp_dev_%u", sw->id);
++		sprintf(ptp->dev_name[1], "ptp_event_%u", sw->id);
++	}
++	ptp->dev_major = init_ptp_device(sw->id, 0, ptp->dev_name[0],
 +		ptp->dev_name[1]);
++	ptp_majors[sw->id].dev = ptp;
++	ptp_majors[sw->id].major = ptp->dev_major;
 +
 +#ifdef CONFIG_PTP_1588_CLOCK_
 +/* THa  05/30/2018
@@ -38866,6 +38901,8 @@ index 000000000000..7da4979c14d9
 +
 +static void ptp_exit(struct ptp_info *ptp)
 +{
++	struct ksz_sw *sw = ptp->parent;
++
 +	exit_ptp_work(ptp);
 +	flush_work(&ptp->adj_clk);
 +	flush_work(&ptp->set_latency);
@@ -38876,7 +38913,7 @@ index 000000000000..7da4979c14d9
 +		ptp->access = NULL;
 +	}
 +	if (ptp->dev_major >= 0)
-+		exit_ptp_device(ptp->dev_major, ptp->dev_name[0]);
++		exit_ptp_device(sw->id, ptp->dev_major, ptp->dev_name[0]);
 +
 +#ifdef CONFIG_PTP_1588_CLOCK
 +	if (ptp->clock_info)
@@ -41627,14 +41664,14 @@ index 000000000000..1dbc08d3b54b
 +
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_req.c b/drivers/net/ethernet/micrel/ksz9897/ksz_req.c
 new file mode 100644
-index 000000000000..ad69bed2e61b
+index 000000000000..d5242000e5a1
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_req.c
 @@ -0,0 +1,95 @@
 +/**
 + * Microchip driver request common code
 + *
-+ * Copyright (c) 2015-2016 Microchip Technology Inc.
++ * Copyright (c) 2015-2019 Microchip Technology Inc.
 + *	Tristram Ha <Tristram.Ha@microchip.com>
 + *
 + * Copyright (c) 2009-2014 Micrel, Inc.
@@ -41674,7 +41711,7 @@ index 000000000000..ad69bed2e61b
 +static int read_user_data(void *kernel, void *user, size_t size, void *info)
 +{
 +	if (info) {
-+		if (!access_ok(VERIFY_READ, user, size) ||
++		if (!access_ok(user, size) ||
 +		    copy_from_user(kernel, user, size))
 +			return -EFAULT;
 +	} else
@@ -41685,7 +41722,7 @@ index 000000000000..ad69bed2e61b
 +static int write_user_data(void *kernel, void *user, size_t size, void *info)
 +{
 +	if (info) {
-+		if (!access_ok(VERIFY_WRITE, user, size) ||
++		if (!access_ok(user, size) ||
 +		    copy_to_user(user, kernel, size))
 +			return -EFAULT;
 +	} else
@@ -42043,10 +42080,10 @@ index 000000000000..7926aeb8dc0d
 +
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_stp.c b/drivers/net/ethernet/micrel/ksz9897/ksz_stp.c
 new file mode 100644
-index 000000000000..e615b7c6193a
+index 000000000000..c4e3948c1c7a
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_stp.c
-@@ -0,0 +1,5032 @@
+@@ -0,0 +1,5035 @@
 +/**
 + * Microchip RSTP code
 + *
@@ -43503,8 +43540,11 @@ index 000000000000..e615b7c6193a
 +	COPY(rootPortId, best_path.port_id);
 +
 +	if (root_Priority) {
-+		u8 num = root_PortId.num - 1;
++		struct ksz_stp_info *stp = br->parent;
++		struct ksz_sw *sw = stp->sw_dev;
++		uint num;
 +
++		num = get_phy_port(sw, root_PortId.num);
 +		p = &br->ports[num];
 +		COPY(rootTimes, portTimes);
 +		rootTimes.message_age += 1;
@@ -47434,10 +47474,10 @@ index 000000000000..136bb3085232
 +#endif
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 new file mode 100644
-index 000000000000..af462146a301
+index 000000000000..fd85cfcd8e42
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -0,0 +1,18813 @@
+@@ -0,0 +1,18972 @@
 +/**
 + * Microchip gigabit switch common code
 + *
@@ -50829,6 +50869,9 @@ index 000000000000..af462146a301
 +			sw_r_acl_table(sw, port, i, acl);
 +		}
 +		sw->ops->acquire(sw);
++
++		/* Turn off ACL after reset. */
++		port_cfg_acl(sw, port, 0);
 +	}
 +}  /* sw_init_acl */
 +
@@ -56216,6 +56259,10 @@ index 000000000000..af462146a301
 +		port_cfg_back_pressure(sw, port, 1);
 +		if (port < sw->phy_port_cnt)
 +			port_cfg_force_flow_ctrl(sw, port, 0);
++
++		/* Enable ACL only when needed. */
++		if (sw->features & (AVB_SUPPORT | DLR_HW))
++			port_cfg_acl(sw, port, true);
 +		cfg->intr_mask |= PORT_ACL_INT;
 +		if (port == sw->HOST_PORT)
 +			continue;
@@ -56342,6 +56389,13 @@ index 000000000000..af462146a301
 +#ifdef CONFIG_KSZ_HSR
 +	if (sw->features & HSR_HW)
 +		sw_setup_hsr(sw);
++#endif
++#if defined(CONFIG_KSZ_AVB) || defined(CONFIG_KSZ_MRP)
++	if ((sw->features & (AVB_SUPPORT | MRP_SUPPORT))) {
++		sw->ops->release(sw);
++		sw_setup_mrp(sw);
++		sw->ops->acquire(sw);
++	}
 +#endif
 +	sw_setup_acl(sw);
 +}  /* sw_setup */
@@ -58091,7 +58145,7 @@ index 000000000000..af462146a301
 +#endif
 +		break;
 +	case PROC_SET_MTU:
-+		if (2000 <= num && num <= 9000) {
++		if (64 <= num && num <= 9000) {
 +			sw->reg->w16(sw, REG_SW_MTU__2, (u16) num);
 +			sw->mtu = num;
 +		}
@@ -61355,7 +61409,7 @@ index 000000000000..af462146a301
 +	return addlen;
 +}
 +
-+static int adjust_tag(u8 *tag_data, u8 *tag, int skb_len, int len, int ptp_len)
++static int adjust_tag(u8 *tag_data, u8 *skb_data, int skb_len, int tag_len)
 +{
 +	int tag_start = 0;
 +
@@ -61364,8 +61418,8 @@ index 000000000000..af462146a301
 +		tag_data[0] = 0;
 +		tag_start = 1;
 +	}
-+	memcpy(&tag_data[tag_start], &tag[4 - ptp_len], len);
-+	tag_start += len;
++	memcpy(&tag_data[tag_start], skb_data, tag_len);
++	tag_start += tag_len;
 +	if (tag_start & 1)
 +		tag_data[tag_start] = 0;
 +	return tag_start;
@@ -61495,6 +61549,7 @@ index 000000000000..af462146a301
 +	uint port;
 +	struct sk_buff *org_skb;
 +	struct ksz_sw_tx_tag tx_tag;
++	int tag_len;
 +	int tag_start = 0;
 +	u8 tag_data[8];
 +	u8 *tag;
@@ -61718,6 +61773,9 @@ index 000000000000..af462146a301
 +#endif
 +	set_tag_valid(sw, &tx_tag);
 +	tag = (u8 *) &tx_tag;
++	tag_len = ptp_len + 2;
++	if (sw->TAIL_TAG_SHIFT != 7)
++		tag_len--;
 +
 +	/* Socket buffer has no fragments. */
 +	if (!skb_shinfo(skb)->nr_frags) {
@@ -61726,8 +61784,8 @@ index 000000000000..af462146a301
 +
 +		/* Need to compensate checksum. */
 +		if (skb->ip_summed == CHECKSUM_PARTIAL)
-+			tag_start = adjust_tag(tag_data, tag, skb->len, len,
-+					       ptp_len);
++			tag_start = adjust_tag(tag_data, &skb->data[skb->len],
++					       skb->len, tag_len);
 +		skb_put(skb, len);
 +	} else {
 +		struct sock dummy;
@@ -61753,8 +61811,9 @@ index 000000000000..af462146a301
 +
 +		/* Need to compensate checksum. */
 +		if (skb->ip_summed == CHECKSUM_PARTIAL)
-+			tag_start = adjust_tag(tag_data, tag, skb->len, len,
-+					       ptp_len);
++			tag_start = adjust_tag(tag_data,
++					       &sw->tx_pad[sw->tx_start],
++					       skb->len, tag_len);
 +		skb_append_datato_frags(sk, skb, add_frag, sw->tx_pad, len);
 +	}
 +
@@ -62443,15 +62502,15 @@ index 000000000000..af462146a301
 +	return promiscuous;
 +}  /* sw_set_mac_addr */
 +
-+static struct ksz_sw *sw_priv;
++static struct ksz_dev_major sw_majors[MAX_SW_DEVICES];
 +
-+static struct file_dev_info *alloc_sw_dev_info(uint minor)
++static struct file_dev_info *alloc_sw_dev_info(struct ksz_sw *sw, uint minor)
 +{
 +	struct file_dev_info *info;
 +
 +	info = kzalloc(sizeof(struct file_dev_info), GFP_KERNEL);
 +	if (info) {
-+		info->dev = sw_priv;
++		info->dev = sw;
 +		sema_init(&info->sem, 1);
 +		mutex_init(&info->lock);
 +		init_waitqueue_head(&info->wait_msg);
@@ -62464,8 +62523,8 @@ index 000000000000..af462146a301
 +		info->write_buf = kzalloc(info->write_len, GFP_KERNEL);
 +
 +		info->minor = minor;
-+		info->next = sw_priv->dev_list[minor];
-+		sw_priv->dev_list[minor] = info;
++		info->next = sw->dev_list[minor];
++		sw->dev_list[minor] = info;
 +	}
 +	return info;
 +}  /* alloc_sw_dev_info */
@@ -62514,11 +62573,22 @@ index 000000000000..af462146a301
 +	struct file_dev_info *info = (struct file_dev_info *)
 +		filp->private_data;
 +	uint minor = MINOR(inode->i_rdev);
++	uint major = MAJOR(inode->i_rdev);
++	struct ksz_sw *sw = NULL;
++	int i;
 +
 +	if (minor > 1)
 +		return -ENODEV;
++	for (i = 0; i < MAX_SW_DEVICES; i++) {
++		if (sw_majors[i].major == major) {
++			sw = sw_majors[i].dev;
++			break;
++		}
++	}
++	if (!sw)
++		return -ENODEV;
 +	if (!info) {
-+		info = alloc_sw_dev_info(minor);
++		info = alloc_sw_dev_info(sw, minor);
 +		if (info)
 +			filp->private_data = info;
 +		else
@@ -62984,9 +63054,9 @@ index 000000000000..af462146a301
 +	if (_IOC_NR(cmd) > DEV_IOC_MAX)
 +		return -ENOTTY;
 +	if (_IOC_DIR(cmd) & _IOC_READ)
-+		err = !access_ok(VERIFY_WRITE, (void *) arg, _IOC_SIZE(cmd));
++		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 +	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-+		err = !access_ok(VERIFY_READ, (void *) arg, _IOC_SIZE(cmd));
++		err = !access_ok((void *) arg, _IOC_SIZE(cmd));
 +	if (err) {
 +		printk(KERN_ALERT "err fault"NL);
 +		return -EFAULT;
@@ -63047,9 +63117,9 @@ index 000000000000..af462146a301
 +	.release	= sw_dev_release,
 +};
 +
-+static struct class *sw_class;
++static struct class *sw_class[MAX_SW_DEVICES];
 +
-+static int init_sw_dev(int dev_major, char *dev_name)
++static int init_sw_dev(int id, int dev_major, char *dev_name)
 +{
 +	int result;
 +
@@ -63061,35 +63131,38 @@ index 000000000000..af462146a301
 +	}
 +	if (0 == dev_major)
 +		dev_major = result;
-+	sw_class = class_create(THIS_MODULE, dev_name);
-+	if (IS_ERR(sw_class)) {
++	sw_class[id] = class_create(THIS_MODULE, dev_name);
++	if (IS_ERR(sw_class[id])) {
 +		unregister_chrdev(dev_major, dev_name);
 +		return -ENODEV;
 +	}
-+	device_create(sw_class, NULL, MKDEV(dev_major, 0), NULL, dev_name);
++	device_create(sw_class[id], NULL, MKDEV(dev_major, 0), NULL, dev_name);
 +	return dev_major;
 +}  /* init_sw_dev */
 +
-+static void exit_sw_dev(int dev_major, char *dev_name)
++static void exit_sw_dev(int id, int dev_major, char *dev_name)
 +{
-+	device_destroy(sw_class, MKDEV(dev_major, 0));
-+	class_destroy(sw_class);
++	device_destroy(sw_class[id], MKDEV(dev_major, 0));
++	class_destroy(sw_class[id]);
 +	unregister_chrdev(dev_major, dev_name);
 +}  /* exit_sw_dev */
 +
 +static void sw_init_dev(struct ksz_sw *sw)
 +{
-+	sw_priv = sw;
 +	sprintf(sw->dev_name, "sw_dev");
-+	sw->dev_major = init_sw_dev(0, sw->dev_name);
++	if (sw->id)
++		sprintf(sw->dev_name, "sw_dev_%u", sw->id);
++	sw->dev_major = init_sw_dev(sw->id, 0, sw->dev_name);
 +	sw->msg_buf = kzalloc(MAX_SW_LEN, GFP_KERNEL);
++	sw_majors[sw->id].dev = sw;
++	sw_majors[sw->id].major = sw->dev_major;
 +}  /* sw_init_dev */
 +
 +static void sw_exit_dev(struct ksz_sw *sw)
 +{
 +	kfree(sw->msg_buf);
 +	if (sw->dev_major >= 0)
-+		exit_sw_dev(sw->dev_major, sw->dev_name);
++		exit_sw_dev(sw->id, sw->dev_major, sw->dev_name);
 +}  /* sw_exit_dev */
 +
 +/* -------------------------------------------------------------------------- */
@@ -63275,6 +63348,79 @@ index 000000000000..af462146a301
 +		}
 +	}
 +}  /* link_update_work */
++
++static void set_phy_support(struct ksz_port *port, struct phy_device *phydev)
++{
++	switch (port->flow_ctrl) {
++	case PHY_NO_FLOW_CTRL:
++		linkmode_clear_bit(ETHTOOL_LINK_MODE_Pause_BIT,
++				   phydev->supported);
++		linkmode_clear_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT,
++				   phydev->supported);
++		break;
++	case PHY_RX_ONLY:
++		linkmode_set_bit(ETHTOOL_LINK_MODE_Pause_BIT,
++				 phydev->supported);
++		linkmode_set_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT,
++				 phydev->supported);
++		break;
++	case PHY_TX_ONLY:
++		linkmode_clear_bit(ETHTOOL_LINK_MODE_Pause_BIT,
++				   phydev->supported);
++		linkmode_set_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT,
++				 phydev->supported);
++		break;
++	default:
++		linkmode_set_bit(ETHTOOL_LINK_MODE_Pause_BIT,
++				 phydev->supported);
++		linkmode_clear_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT,
++				   phydev->supported);
++		break;
++	}
++}  /* set_phy_support */
++
++#ifdef CONFIG_KSZ_NO_MDIO_BUS
++static void sw_set_phy_support(struct ksz_sw *sw, int i, struct ksz_port *port,
++			       struct phy_device *phydev)
++{
++	uint p;
++
++	__ETHTOOL_DECLARE_LINK_MODE_MASK(features) = { 0, };
++
++	linkmode_set_bit_array(phy_basic_ports_array,
++			       ARRAY_SIZE(phy_basic_ports_array),
++			       features);
++	linkmode_set_bit(ETHTOOL_LINK_MODE_Pause_BIT, features);
++	linkmode_set_bit(ETHTOOL_LINK_MODE_Asym_Pause_BIT, features);
++
++#if 1
++		linkmode_set_bit(ETHTOOL_LINK_MODE_Autoneg_BIT, features);
++#endif
++
++	linkmode_set_bit(ETHTOOL_LINK_MODE_100baseT_Full_BIT, features);
++	linkmode_set_bit(ETHTOOL_LINK_MODE_100baseT_Half_BIT, features);
++	linkmode_set_bit(ETHTOOL_LINK_MODE_10baseT_Full_BIT, features);
++	linkmode_set_bit(ETHTOOL_LINK_MODE_10baseT_Half_BIT, features);
++
++	if (sw->features & GIGABIT_SUPPORT) {
++		linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
++				 features);
++	}
++	p = get_phy_port(sw, i);
++	if (PHY_INTERFACE_MODE_SGMII == sw->port_info[p].interface) {
++		linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
++				 features);
++		linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Half_BIT,
++				 features);
++	}
++
++	linkmode_copy(phydev->supported, features);
++	linkmode_copy(phydev->advertising, features);
++
++	phydev->mdio.addr = i;
++	set_phy_support(port, phydev);
++}  /* sw_set_phy_support */
++#endif
 +
 +
 +#if defined(CONFIG_KSZ_DLR) && !defined(CONFIG_KSZ_MSRP) && !defined(CONFIG_KSZ_HSR)
@@ -63907,7 +64053,13 @@ index 000000000000..af462146a301
 +			phydev = &sw->phy_map[phy_id];
 +		priv = phydev->priv;
 +		priv->port = port;
++		set_phy_support(port, phydev);
 +	} while (0);
++
++#ifdef CONFIG_KSZ_NO_MDIO_BUS
++	if (i)
++		sw_set_phy_support(sw, i, port, dev->phydev);
++#endif
 +	if (!phy_offset)
 +		phy_offset = 1;
 +
@@ -64550,6 +64702,67 @@ index 000000000000..af462146a301
 +	"Microchip KSZ8563 Switch",
 +};
 +
++static int kszphy_probe(struct phy_device *phydev)
++{
++	struct mii_bus *bus = phydev->mdio.bus;
++	struct sw_priv *sw_priv = bus->priv;
++	struct phy_priv *priv = &sw_priv->sw.phydata[phydev->mdio.addr];
++
++	phydev->priv = priv;
++	return 0;
++}
++
++/* Just a placeholder to indicate PHY interrupt support. */
++static int kszphy_ack_interrupt(struct phy_device *phydev)
++{
++	return 0;
++}
++
++static int kszphy_config_intr(struct phy_device *phydev)
++{
++	return 0;
++}
++
++static int kszphy_get_features(struct phy_device *phydev)
++{
++	struct phy_priv *priv = phydev->priv;
++	struct ksz_port *port = priv->port;
++	struct ksz_sw *sw = port->sw;
++	int ret;
++
++	ret = genphy_read_abilities(phydev);
++	if (ret < 0)
++		return ret;
++
++	set_phy_support(port, phydev);
++
++	/* Do not support half-duplex in gigabit. */
++	if (sw->features & GIGABIT_SUPPORT)
++		linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
++				 phydev->supported);
++	if (port->port_cnt == 1) {
++		uint p = get_phy_port(sw, port->first_port);
++
++		if (PHY_INTERFACE_MODE_SGMII == sw->port_info[p].interface) {
++			linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
++					 phydev->supported);
++			linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Half_BIT,
++					 phydev->supported);
++		}
++	}
++
++	/* Special for first PHY connected to MAC. */
++	if (phydev->mdio.addr == 0) {
++		struct ksz_port_info *info = get_port_info(sw, sw->HOST_PORT);
++		int speed = info->tx_rate / TX_RATE_UNIT;
++
++		if (speed == 1000)
++			linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
++					 phydev->supported);
++	}
++	return 0;
++}
++
 +static int kszphy_config_init(struct phy_device *phydev)
 +{
 +	return 0;
@@ -64560,18 +64773,10 @@ index 000000000000..af462146a301
 +	.phy_id		= PHY_ID_KSZ989X_SW,
 +	.phy_id_mask	= 0x00ffffff,
 +	.name		= "Microchip KSZ989X Switch",
-+	.features	= (PHY_GBIT_FEATURES |
-+				SUPPORTED_Pause | SUPPORTED_Asym_Pause),
-+	.flags		= PHY_HAS_INTERRUPT,
-+	.config_init	= kszphy_config_init,
-+	.config_aneg	= genphy_config_aneg,
-+	.read_status	= genphy_read_status,
-+}, {
-+	.phy_id		= PHY_ID_KSZ889X_SW,
-+	.phy_id_mask	= 0x00ffffff,
-+	.name		= "Microchip KSZ889X Switch",
-+	.features	= (PHY_BASIC_FEATURES | SUPPORTED_Pause),
-+	.flags		= PHY_HAS_INTERRUPT,
++	.probe		= kszphy_probe,
++	.get_features	= kszphy_get_features,
++	.ack_interrupt	= kszphy_ack_interrupt,
++	.config_intr	= kszphy_config_intr,
 +	.config_init	= kszphy_config_init,
 +	.config_aneg	= genphy_config_aneg,
 +	.read_status	= genphy_read_status,
@@ -64634,10 +64839,7 @@ index 000000000000..af462146a301
 +
 +	/* Use unique switch id to differentiate from regular PHY. */
 +	if (MII_PHYSID2 == reg) {
-+		if (sw->features & GIGABIT_SUPPORT)
-+			ret = KSZ989X_SW_ID;
-+		else
-+			ret = KSZ889X_SW_ID;
++		ret = KSZ989X_SW_ID;
 +	} else if (MII_PHYSID1 == reg) {
 +		ret = KSZ9897_ID_LO;
 +	}
@@ -64758,12 +64960,8 @@ index 000000000000..af462146a301
 +	}
 +
 +	if (!driver_installed) {
-+		if (ks->sw.features & GIGABIT_SUPPORT)
-+			kszsw_phy_driver[0].name =
-+				kszsw_phy_driver_names[ks->sw.chip_id];
-+		else
-+			kszsw_phy_driver[1].name =
-+				kszsw_phy_driver_names[ks->sw.chip_id];
++		kszsw_phy_driver[0].name =
++			kszsw_phy_driver_names[ks->sw.chip_id];
 +		err = phy_drivers_register(kszsw_phy_driver,
 +					   ARRAY_SIZE(kszsw_phy_driver),
 +					   THIS_MODULE);
@@ -64793,7 +64991,6 @@ index 000000000000..af462146a301
 +			struct phy_priv *priv = &ks->sw.phydata[i];
 +
 +			priv->state = phydev->state;
-+			phydev->priv = priv;
 +		}
 +	}
 +
@@ -65109,8 +65306,7 @@ index 000000000000..af462146a301
 +		priv = phydev->priv;
 +		if (priv->state != phydev->state) {
 +			priv->state = phydev->state;
-+			if (PHY_UP == phydev->state ||
-+			    PHY_RESUMING == phydev->state)
++			if (PHY_UP == phydev->state)
 +				schedule_work(&priv->port->link_update);
 +		}
 +	}
@@ -65137,6 +65333,9 @@ index 000000000000..af462146a301
 +#if defined(CONFIG_SPI_PEGASUS) || defined(CONFIG_SPI_PEGASUS_MODULE)
 +	intr_mode = 1;
 +#endif
++
++	if (sw_device_present >= MAX_SW_DEVICES)
++		return -ENODEV;
 +
 +	if (1 == intr_mode)
 +		ks->intr_mode = IRQF_TRIGGER_LOW | IRQF_ONESHOT;
@@ -66253,14 +66452,14 @@ index 000000000000..af462146a301
 +
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.h b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.h
 new file mode 100644
-index 000000000000..9a44f6d012fb
+index 000000000000..a0ec157d952f
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.h
-@@ -0,0 +1,1401 @@
+@@ -0,0 +1,1403 @@
 +/**
 + * Microchip KSZ9897 switch common header
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + *	Tristram Ha <Tristram.Ha@microchip.com>
 + *
 + * Copyright (c) 2013-2015 Micrel, Inc.
@@ -66303,6 +66502,8 @@ index 000000000000..9a44f6d012fb
 +
 +/* Host port can be any one of them. */
 +#define SWITCH_PORT_NUM			(TOTAL_PORT_NUM)
++
++#define MAX_SW_DEVICES			2
 +
 +
 +struct ksz_vlan_table;
@@ -73203,14 +73404,14 @@ index 000000000000..020888da507e
 +
 diff --git a/drivers/net/ethernet/micrel/ksz9897/spi-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/spi-ksz9897.c
 new file mode 100644
-index 000000000000..4e2060cce18e
+index 000000000000..8127100b7134
 --- /dev/null
 +++ b/drivers/net/ethernet/micrel/ksz9897/spi-ksz9897.c
-@@ -0,0 +1,685 @@
+@@ -0,0 +1,683 @@
 +/**
 + * Microchip KSZ9897 SPI driver
 + *
-+ * Copyright (c) 2015-2019 Microchip Technology Inc.
++ * Copyright (c) 2015-2020 Microchip Technology Inc.
 + * Copyright (c) 2013-2015 Micrel, Inc.
 + *
 + * Copyright 2009 Simtec Electronics
@@ -73324,8 +73525,8 @@ index 000000000000..4e2060cce18e
 +
 +#define KS9897MLI_DEV0			"ksz9897"
 +
-+#define SW_DRV_RELDATE			"Nov 2, 2019"
-+#define SW_DRV_VERSION			"1.2.2"
++#define SW_DRV_RELDATE			"Sep 16, 2020"
++#define SW_DRV_VERSION			"1.2.3"
 +
 +/* -------------------------------------------------------------------------- */
 +
@@ -73682,7 +73883,7 @@ index 000000000000..4e2060cce18e
 +
 +static void sw_r(struct ksz_sw *sw, unsigned reg, void *buf, size_t cnt)
 +{
-+	if (cnt - SPI_CMD_LEN > 128)
++	if (cnt + SPI_CMD_LEN > 128)
 +		cnt = 128 - SPI_CMD_LEN;
 +	spi_rdreg(sw->dev, reg, buf, NULL, cnt);
 +}
@@ -73779,8 +73980,6 @@ index 000000000000..4e2060cce18e
 +
 +static int rx_1msg = 1;
 +static int spi_bus;
-+
-+#define MAX_SPI_DEVICES		2
 +
 +static int ksz9897_probe(struct spi_device *spi)
 +{

@@ -1,31 +1,5 @@
-diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index f826318bcb87..fc84604a669b 100644
---- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-+++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -18144,9 +18144,11 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
- 			}
- 		}
- 	}
-+
- 	if (ks->dev->of_node) {
- 		int score;
- 		char name[80];
-+		uint32_t *ofv;
- 
- 		if (!of_modalias_node(ks->dev->of_node, name, sizeof(name)))
- 			dbg_msg(" compatible: %s"NL, name);
-@@ -18156,6 +18158,9 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
- 			sku = KSZ8565_SKU;
- 			sw->chip_id = KSZ8565_SW_CHIP;
- 		}
-+
-+		if ((ofv = of_get_property(ks->dev->of_node, "sw_host_port", &i)) != NULL)
-+			sw_host_port = be32_to_cpup(ofv);
- 	}
- 
- 	/* Find out how many ports are available. */
 diff --git a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
-index ac6efff386fb..ca5136c96d0f 100644
+index 6f5988c81882..5d7cf556387d 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
 @@ -53,6 +53,8 @@
@@ -38,10 +12,10 @@ index ac6efff386fb..ca5136c96d0f 100644
  #define MAX_REQUEST_SIZE		80
  
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index fc84604a669b..926a2a028b28 100644
+index fd85cfcd8e42..9d3b4dba865b 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -17307,6 +17307,8 @@ static int ksz_mii_init(struct sw_priv *ks)
+@@ -17465,6 +17465,8 @@ static int ksz_mii_init(struct sw_priv *ks)
  	struct platform_device *pdev;
  	struct mii_bus *bus;
  	struct phy_device *phydev;
@@ -50,7 +24,7 @@ index fc84604a669b..926a2a028b28 100644
  	int err;
  	int i;
  
-@@ -17347,7 +17349,15 @@ static int ksz_mii_init(struct sw_priv *ks)
+@@ -17501,7 +17503,15 @@ static int ksz_mii_init(struct sw_priv *ks)
  	for (i = 0; i < PHY_MAX_ADDR; i++)
  		bus->irq[i] = ks->irq;
  
@@ -67,3 +41,25 @@ index fc84604a669b..926a2a028b28 100644
  	if (err < 0)
  		goto mii_init_free_mii_bus;
  
+@@ -18299,9 +18309,11 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
+ 			}
+ 		}
+ 	}
++
+ 	if (ks->dev->of_node) {
+ 		int score;
+ 		char name[80];
++		uint32_t *ofv;
+ 
+ 		if (!of_modalias_node(ks->dev->of_node, name, sizeof(name)))
+ 			dbg_msg(" compatible: %s"NL, name);
+@@ -18311,6 +18323,9 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
+ 			sku = KSZ8565_SKU;
+ 			sw->chip_id = KSZ8565_SW_CHIP;
+ 		}
++
++		if ((ofv = of_get_property(ks->dev->of_node, "sw_host_port", &i)) != NULL)
++			sw_host_port = be32_to_cpup(ofv);
+ 	}
+ 
+ 	/* Find out how many ports are available. */

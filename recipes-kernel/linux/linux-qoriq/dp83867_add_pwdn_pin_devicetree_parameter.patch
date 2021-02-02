@@ -1,25 +1,26 @@
 diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
-index 663bd4f9c3c4..3e59a5b0038b 100644
+index 1f9945a61985..1686ca102de5 100644
 --- a/drivers/net/phy/dp83867.c
 +++ b/drivers/net/phy/dp83867.c
-@@ -101,6 +101,7 @@ struct dp83867_private {
- 	int io_impedance;
+@@ -118,6 +118,7 @@ struct dp83867_private {
  	int port_mirroring;
  	bool rxctrl_strap_quirk;
+ 	bool set_clk_output;
 +	bool pwdn_int;
- 	int clk_output_sel;
+ 	u32 clk_output_sel;
+ 	bool sgmii_ref_clk_en;
  };
- 
-@@ -229,6 +230,8 @@ static int dp83867_of_init(struct phy_device *phydev)
- 	if (of_property_read_bool(of_node, "enet-phy-lane-no-swap"))
- 		dp83867->port_mirroring = DP83867_PORT_MIRROING_DIS;
- 
+@@ -303,6 +304,9 @@ static int dp83867_of_init(struct phy_device *phydev)
+ 			   dp83867->fifo_depth);
+ 		return -EINVAL;
+ 	}
++
 +	dp83867->pwdn_int = of_property_read_bool(of_node, "ti,pwdn_int");
 +
- 	return of_property_read_u32(of_node, "ti,fifo-depth",
- 				   &dp83867->fifo_depth);
+ 	return 0;
  }
-@@ -376,7 +379,7 @@ static int dp83867_config_init(struct phy_device *phydev)
+ #else
+@@ -439,7 +443,7 @@ static int dp83867_config_init(struct phy_device *phydev)
  	}
  
  	/* Enable Interrupt output INT_OE in CFG3 register */

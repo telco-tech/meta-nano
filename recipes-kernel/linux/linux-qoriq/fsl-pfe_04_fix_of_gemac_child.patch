@@ -1,5 +1,5 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-index bf4b8dd7a676..ce77b3c2588f 100644
+index fd2b0e353d8b..4eadc001bf96 100644
 --- a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 +++ b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 @@ -22,12 +22,12 @@ extern bool pfe_use_old_dts_phy;
@@ -14,9 +14,9 @@ index bf4b8dd7a676..ce77b3c2588f 100644
  	int phy_id = 0;
 +	int port;
  	const u32 *addr;
- 	const void *mac_addr;
+ 	const u8 *mac_addr;
  
-@@ -202,14 +202,20 @@ static int pfe_platform_probe(struct platform_device *pdev)
+@@ -207,14 +207,20 @@ static int pfe_platform_probe(struct platform_device *pdev)
  
  	pfe_platform_data.ls1012a_mdio_pdata[0].phy_mask = 0xffffffff;
  

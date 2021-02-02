@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:${THISDIR}/${P}:"
 
 SRC_URI += "\
 	file://01_nano_board.patch \

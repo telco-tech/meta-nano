@@ -1,8 +1,8 @@
 diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
-index e4bf9e7d7583..434e5b248021 100644
+index 37fceaf9fa10..1f9945a61985 100644
 --- a/drivers/net/phy/dp83867.c
 +++ b/drivers/net/phy/dp83867.c
-@@ -28,6 +28,7 @@
+@@ -21,6 +21,7 @@
  #define MII_DP83867_PHYCTRL	0x10
  #define MII_DP83867_MICR	0x12
  #define MII_DP83867_ISR		0x13
@@ -10,21 +10,21 @@ index e4bf9e7d7583..434e5b248021 100644
  #define DP83867_CTRL		0x1f
  #define DP83867_CFG3		0x1e
  
-@@ -91,6 +92,11 @@ struct dp83867_private {
- 	int rx_id_delay;
- 	int tx_id_delay;
- 	int fifo_depth;
+@@ -108,6 +109,11 @@ struct dp83867_private {
+ 	u32 rx_id_delay;
+ 	u32 tx_id_delay;
+ 	u32 fifo_depth;
 +	uint8_t led_0_source;
 +	uint8_t led_1_source;
 +	uint8_t led_2_source;
 +	uint8_t led_gpio_source;
-+	uint32_t led_mask;	
++	uint32_t led_mask;
  	int io_impedance;
  	int port_mirroring;
  	bool rxctrl_strap_quirk;
-@@ -179,6 +185,29 @@ static int dp83867_of_init(struct phy_device *phydev)
- 	dp83867->rxctrl_strap_quirk = of_property_read_bool(of_node,
- 					"ti,dp83867-rxctrl-strap-quirk");
+@@ -205,6 +211,28 @@ static int dp83867_of_init(struct phy_device *phydev)
+ 	dp83867->sgmii_ref_clk_en = of_property_read_bool(of_node,
+ 					"ti,sgmii-ref-clock-output-enable");
  
 +	dp83867->led_mask = ~0;
 +
@@ -48,12 +48,11 @@ index e4bf9e7d7583..434e5b248021 100644
 +	if (ret)
 +		dp83867->led_mask &= ~0xf000;
 +
-+
- 	ret = of_property_read_u32(of_node, "ti,rx-internal-delay",
- 				   &dp83867->rx_id_delay);
- 	if (ret &&
-@@ -312,6 +341,16 @@ static int dp83867_config_init(struct phy_device *phydev)
- 		phy_write_mmd(phydev, DP83867_DEVADDR, DP83867_IO_MUX_CFG, val);
+ 	/* Existing behavior was to use default pin strapping delay in rgmii
+ 	 * mode, but rgmii should have meant no delay.  Warn existing users.
+ 	 */
+@@ -436,6 +464,16 @@ static int dp83867_config_init(struct phy_device *phydev)
+ 			       mask, val);
  	}
  
 +	if (dp83867->led_mask) {
@@ -70,10 +69,10 @@ index e4bf9e7d7583..434e5b248021 100644
  }
  
 diff --git a/include/dt-bindings/net/ti-dp83867.h b/include/dt-bindings/net/ti-dp83867.h
-index 7b1656427cbe..47a9ab1e21e8 100644
+index 6fc4b445d3a1..0f624518e90a 100644
 --- a/include/dt-bindings/net/ti-dp83867.h
 +++ b/include/dt-bindings/net/ti-dp83867.h
-@@ -42,6 +42,21 @@
+@@ -34,6 +34,21 @@
  #define	DP83867_RGMIIDCTL_3_75_NS	0xe
  #define	DP83867_RGMIIDCTL_4_00_NS	0xf
  

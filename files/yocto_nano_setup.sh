@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Branches: yocto bitbake
-YBRANCH=zeus
-BBRANCH=1.44
+YBRANCH=dunfell
+BBRANCH=1.46
 
 # yocto core
 # http://www.openembedded.org/wiki/OE-Core_Standalone_Setup

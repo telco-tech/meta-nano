@@ -1,8 +1,8 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index c3d770364d..2a709f8090 100644
+index 5d33526ae9..b807b231a1 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -1202,6 +1202,13 @@ config TARGET_LS1012AFRDM
+@@ -1308,6 +1308,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
  
@@ -16,7 +16,7 @@ index c3d770364d..2a709f8090 100644
  config TARGET_LS1028AQDS
  	bool "Support ls1028aqds"
  	select ARCH_LS1028A
-@@ -1637,6 +1644,7 @@ source "board/freescale/ls1046afrwy/Kconfig"
+@@ -1795,6 +1802,7 @@ source "board/freescale/ls1046afrwy/Kconfig"
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
@@ -38,10 +38,10 @@ index 92a2b58ed4..2c61d77e3b 100644
  		   !TARGET_LS1043ARDB && !TARGET_LS1043AQDS && \
  		   !TARGET_LS1046ARDB && !TARGET_LS1046AQDS && \
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index b9f34113ea..f8001c0fdd 100644
+index 8d7d5bee45..7af9e7b15b 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -310,7 +310,8 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
+@@ -360,7 +360,8 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
  	fsl-ls1012a-rdb.dtb \
  	fsl-ls1012a-2g5rdb.dtb \
  	fsl-ls1012a-frdm.dtb \
@@ -171,10 +171,10 @@ index 0000000000..3c04d84ada
 +
 diff --git a/board/freescale/ls1012a-nano/eth.c b/board/freescale/ls1012a-nano/eth.c
 new file mode 100644
-index 0000000000..5256efadf9
+index 0000000000..4932d8e2f6
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/eth.c
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,116 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
 + * Copyright 2017 NXP
@@ -198,7 +198,6 @@ index 0000000000..5256efadf9
 +#include <net/pfe_eth/pfe_eth.h>
 +#include <dm/platform_data/pfe_dm_eth.h>
 +#include <i2c.h>
-+#include <environment.h>
 +
 +#define DEFAULT_PFE_MDIO0_NAME "PFE_MDIO0"
 +#define DEFAULT_PFE_MDIO1_NAME "PFE_MDIO1"
@@ -294,10 +293,10 @@ index 0000000000..5256efadf9
 +};
 diff --git a/board/freescale/ls1012a-nano/ls1012anano.c b/board/freescale/ls1012a-nano/ls1012anano.c
 new file mode 100644
-index 0000000000..547c802e88
+index 0000000000..5f2010788e
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/ls1012anano.c
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,185 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + * Copyright 2018 Telco-Tech GmbH
@@ -320,7 +319,6 @@ index 0000000000..547c802e88
 +#include <mmc.h>
 +#include <scsi.h>
 +#include <fsl_esdhc.h>
-+#include <environment.h>
 +#include <fsl_mmdc.h>
 +#include <netdev.h>
 +#include <fsl_sec.h>
@@ -486,7 +484,7 @@ index 0000000000..547c802e88
 +}
 diff --git a/configs/ls1012anano_qspi_defconfig b/configs/ls1012anano_qspi_defconfig
 new file mode 100644
-index 0000000000..374791f6ce
+index 0000000000..7ea59fe575
 --- /dev/null
 +++ b/configs/ls1012anano_qspi_defconfig
 @@ -0,0 +1,58 @@
@@ -550,7 +548,7 @@ index 0000000000..374791f6ce
 +CONFIG_EFI_LOADER=y
 diff --git a/include/configs/ls1012anano.h b/include/configs/ls1012anano.h
 new file mode 100644
-index 0000000000..d34b835a07
+index 0000000000..ecbef597aa
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
 @@ -0,0 +1,133 @@

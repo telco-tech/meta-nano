@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index 926a2a028b28..a6a988b5056a 100644
+index 9d3b4dba865b..9a472114f0e5 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -15693,7 +15693,9 @@ static void link_update_work(struct work_struct *work)
+@@ -15722,7 +15722,9 @@ static void link_update_work(struct work_struct *work)
  		if (!info->report)
  			continue;
  		info->report = false;
@@ -13,7 +13,7 @@ index 926a2a028b28..a6a988b5056a 100644
  		phydev->link = (info->state == media_connected);
  		phydev->speed = info->tx_rate / TX_RATE_UNIT;
  		phydev->duplex = (info->duplex == 2);
-@@ -17156,7 +17158,7 @@ static void sw_r_phy(struct ksz_sw *sw, u16 phy, u16 reg, u16 *val)
+@@ -17317,7 +17319,7 @@ static void sw_r_phy(struct ksz_sw *sw, u16 phy, u16 reg, u16 *val)
  	u16 ret = 0;
  	uint p;
  
@@ -22,7 +22,7 @@ index 926a2a028b28..a6a988b5056a 100644
  	if (p < sw->phy_port_cnt) {
  		u16 data;
  
-@@ -17221,18 +17223,18 @@ static int ksz_mii_read(struct mii_bus *bus, int phy_id, int regnum)
+@@ -17379,18 +17381,18 @@ static int ksz_mii_read(struct mii_bus *bus, int phy_id, int regnum)
  	ret = 0;
  	if (regnum < 11) {
  		u16 data;
@@ -53,7 +53,7 @@ index 926a2a028b28..a6a988b5056a 100644
  		sw_r_phy(sw, phy_id, regnum, &data);
  		ret = data;
  	}
-@@ -17373,7 +17375,8 @@ static int ksz_mii_init(struct sw_priv *ks)
+@@ -17526,7 +17528,8 @@ static int ksz_mii_init(struct sw_priv *ks)
  
  	ks->bus = bus;
  	ks->pdev = pdev;
@@ -63,7 +63,7 @@ index 926a2a028b28..a6a988b5056a 100644
  	ks->phydev = phydev;
  	sw_init_phydev(&ks->sw, phydev);
  
-@@ -17890,7 +17893,7 @@ static void ksz_setup_logical_ports(struct ksz_sw *sw, u8 id, uint ports)
+@@ -18045,7 +18048,7 @@ static void ksz_setup_logical_ports(struct ksz_sw *sw, u8 id, uint ports)
  		info = &sw->port_info[i];
  		info->phy_p = p;
  		info->phy_m = BIT(p);

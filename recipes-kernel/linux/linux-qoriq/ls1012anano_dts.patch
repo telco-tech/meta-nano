@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..e310f57
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a-nano.dts
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,219 @@
 +/*
 + * Device Tree file for INCOstartec NanoFW Board.
 + *
@@ -149,6 +149,7 @@ index 0000000..e310f57
 +	voltage-ranges = <3300 3300>;
 +	cd-gpios = <&gpio0 21 1>;
 +	disable-wp;
++	no-1-8-v;
 +	status = "okay";
 +};
 +
@@ -158,13 +159,6 @@ index 0000000..e310f57
 +	non-removable;
 +	status = "okay";
 +};
-+
-+&usb0 {
-+	status = "okay";
-+	clock-names = "ref", "bus_early", "suspend";
-+	clocks = <&clockgen 4 1>, <&clockgen 4 1>, <&clockgen 4 1>;
-+};
-+
 +
 +&pfe {
 +	status = "okay";
