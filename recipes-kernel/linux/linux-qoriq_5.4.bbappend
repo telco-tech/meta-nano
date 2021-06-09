@@ -18,6 +18,7 @@ SRC_URI += "\
 	file://dp83867_add_pwdn_pin_devicetree_parameter.patch \
 	file://fix_fsl_1012a_dtsi_usb0.patch \
 	file://fsl_1012a_dtsi_usb0_clocks.patch \
+	file://fsl-tmu-dtsi_update_temperatures.patch \
 	file://ls1012anano_dts.patch \
 	file://ls1012anano.cfg \
 "
