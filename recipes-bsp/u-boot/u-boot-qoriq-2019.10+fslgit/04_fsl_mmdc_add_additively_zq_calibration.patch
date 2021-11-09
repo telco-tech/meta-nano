@@ -1,0 +1,30 @@
+diff --git a/drivers/ddr/fsl/fsl_mmdc.c b/drivers/ddr/fsl/fsl_mmdc.c
+index 08285120ca..199e0efaf5 100644
+--- a/drivers/ddr/fsl/fsl_mmdc.c
++++ b/drivers/ddr/fsl/fsl_mmdc.c
+@@ -57,6 +57,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
+ 
+ 	/* 6. perform a ZQ calibration - not needed here, doing in #8b */
+ 
++	out_be32(&mmdc->mdscr,  CMD_ADDR_MSB_MR_OP(0x4) | MDSCR_ENABLE_CON_REQ |
++				CMD_ZQ_CALIBRATION | CMD_BANK_ADDR_0);
++
++	set_wait_for_bits_clear(&mmdc->mpzqhwctrl, priv->mpzqhwctrl,
++				MPZQHWCTRL_ZQ_HW_FORCE);
++
+ 	/* 7. enable MMDC with the desired chip select */
+ #if (CONFIG_CHIP_SELECTS_PER_CTRL == 1)
+ 		out_be32(&mmdc->mdctl, tmp | MDCTL_SDE0);
+@@ -146,6 +152,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
+ 
+ 	/* 11. ZQ config again? do nothing here */
+ 
++	out_be32(&mmdc->mdscr,  CMD_ADDR_MSB_MR_OP(0x4) | MDSCR_ENABLE_CON_REQ |
++				CMD_ZQ_CALIBRATION | CMD_BANK_ADDR_0);
++
++	set_wait_for_bits_clear(&mmdc->mpzqhwctrl, priv->mpzqhwctrl,
++				MPZQHWCTRL_ZQ_HW_FORCE);
++
+ 	/* 12. refresh scheme */
+ 	set_wait_for_bits_clear(&mmdc->mdref, priv->mdref,
+ 				MDREF_START_REFRESH);
