@@ -338,7 +338,7 @@ index 0000000000..5f2010788e
 +		0x05280000,	/* MDCTL COLS:11, ROWS:16, BL:8 */
 +		0x0002002d,	/* MDPDC CKSRE:5, CKSRX:5, CKE:3 */
 +		0x09005000,	/* MDOTC AOFPD:2, AONPD:2, ODTLon:5 */
-+		0xaeb357a4,	/* MDCFG0 CL:7, FAW:27, RFC:175, XS:360, XP:3, XPDLL:12 */
++		0xaeb357a4,	/* MDCFG0 CL:7, FAW:27, RFC:175, XS:180, XP:3, XPDLL:12 */
 +		0xdb538e64,	/* MDCFG1 CWL:6, WR:8, RAS:20, RC:27, RP:7, RCD:7 */
 +		0x01ff00db,	/* MDCFG2 RRD:4, WTR:4, RTP:4 */
 +		0x00001680,	/* MDMISC RALAT:2, Bank Interleaving: on */
@@ -551,7 +551,7 @@ new file mode 100644
 index 0000000000..ecbef597aa
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,134 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -665,6 +665,7 @@ index 0000000000..ecbef597aa
 +		      "fi; " \
 +		      "pfe stop; " \
 +		      "mmc dev 1;" \
++		      "set filesize $grubefi_size;" \
 +		      "bootefi $load_addr $dtb_load; " \
 +		   "elif load mmc 1:1 $load_addr /boot/itbImage; then " \
 +		      "echo Trying load from emmc..;"	\
