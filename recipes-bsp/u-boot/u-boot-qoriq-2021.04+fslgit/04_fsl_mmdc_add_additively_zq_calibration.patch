@@ -1,8 +1,8 @@
 diff --git a/drivers/ddr/fsl/fsl_mmdc.c b/drivers/ddr/fsl/fsl_mmdc.c
-index 08285120ca..199e0efaf5 100644
+index cbd625b7ee..aabaee54f1 100644
 --- a/drivers/ddr/fsl/fsl_mmdc.c
 +++ b/drivers/ddr/fsl/fsl_mmdc.c
-@@ -57,6 +57,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
+@@ -58,6 +58,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
  
  	/* 6. perform a ZQ calibration - not needed here, doing in #8b */
  
@@ -15,7 +15,7 @@ index 08285120ca..199e0efaf5 100644
  	/* 7. enable MMDC with the desired chip select */
  #if (CONFIG_CHIP_SELECTS_PER_CTRL == 1)
  		out_be32(&mmdc->mdctl, tmp | MDCTL_SDE0);
-@@ -146,6 +152,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
+@@ -147,6 +153,12 @@ void mmdc_init(const struct fsl_mmdc_info *priv)
  
  	/* 11. ZQ config again? do nothing here */
  

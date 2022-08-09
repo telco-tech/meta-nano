@@ -1,8 +1,8 @@
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 5d33526ae9..b807b231a1 100644
+index dc2d122998..81fdc6424a 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -1308,6 +1308,13 @@ config TARGET_LS1012AFRDM
+@@ -1449,6 +1449,13 @@ config TARGET_LS1012AFRDM
  	  development platform that supports the QorIQ LS1012A
  	  Layerscape Architecture processor.
  
@@ -16,19 +16,19 @@ index 5d33526ae9..b807b231a1 100644
  config TARGET_LS1028AQDS
  	bool "Support ls1028aqds"
  	select ARCH_LS1028A
-@@ -1795,6 +1802,7 @@ source "board/freescale/ls1046afrwy/Kconfig"
+@@ -2019,6 +2026,7 @@ source "board/freescale/ls1046afrwy/Kconfig"
  source "board/freescale/ls1012aqds/Kconfig"
  source "board/freescale/ls1012ardb/Kconfig"
  source "board/freescale/ls1012afrdm/Kconfig"
 +source "board/freescale/ls1012a-nano/Kconfig"
  source "board/freescale/lx2160a/Kconfig"
- source "board/freescale/mx35pdk/Kconfig"
  source "board/freescale/s32v234evb/Kconfig"
+ source "board/grinn/chiliboard/Kconfig"
 diff --git a/arch/arm/cpu/armv8/Kconfig b/arch/arm/cpu/armv8/Kconfig
-index 92a2b58ed4..2c61d77e3b 100644
+index 9cd6a8d642..a8c0e08bba 100644
 --- a/arch/arm/cpu/armv8/Kconfig
 +++ b/arch/arm/cpu/armv8/Kconfig
-@@ -103,7 +103,7 @@ config PSCI_RESET
+@@ -109,7 +109,7 @@ config PSCI_RESET
  		   !TARGET_LS1088ARDB && !TARGET_LS1088AQDS && \
  		   !TARGET_LS1012ARDB && !TARGET_LS1012AFRDM && \
  		   !TARGET_LS1012A2G5RDB && !TARGET_LS1012AQDS && \
@@ -38,19 +38,19 @@ index 92a2b58ed4..2c61d77e3b 100644
  		   !TARGET_LS1043ARDB && !TARGET_LS1043AQDS && \
  		   !TARGET_LS1046ARDB && !TARGET_LS1046AQDS && \
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 8d7d5bee45..7af9e7b15b 100644
+index 585ebc6c11..6b40b7097e 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -360,7 +360,8 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
+@@ -436,7 +436,8 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
  	fsl-ls1012a-rdb.dtb \
  	fsl-ls1012a-2g5rdb.dtb \
  	fsl-ls1012a-frdm.dtb \
 -	fsl-ls1012a-frwy.dtb
 +	fsl-ls1012a-frwy.dtb \
 +	fsl-ls1012a-nano.dtb
- 
- dtb-$(CONFIG_TARGET_DRAGONBOARD410C) += dragonboard410c.dtb
- dtb-$(CONFIG_TARGET_DRAGONBOARD820C) += dragonboard820c.dtb
+ dtb-$(CONFIG_TARGET_SL28) += fsl-ls1028a-kontron-sl28.dtb \
+ 	fsl-ls1028a-kontron-sl28-var1.dtb \
+ 	fsl-ls1028a-kontron-sl28-var2.dtb \
 diff --git a/arch/arm/dts/fsl-ls1012a-nano.dts b/arch/arm/dts/fsl-ls1012a-nano.dts
 new file mode 100644
 index 0000000000..a4b9dfa06b
@@ -99,10 +99,10 @@ index 0000000000..a4b9dfa06b
 +};
 diff --git a/board/freescale/ls1012a-nano/Kconfig b/board/freescale/ls1012a-nano/Kconfig
 new file mode 100644
-index 0000000000..32f277fa19
+index 0000000000..e2cb51da2e
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/Kconfig
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,56 @@
 +if TARGET_LS1012ANANO
 +
 +config SYS_BOARD
@@ -121,6 +121,10 @@ index 0000000000..32f277fa19
 +       hex "Flash address of PFE firmware"
 +       default 0x40a00000
 +
++config SYS_LS_PFE_FW_LENGTH
++       hex "length of PFE firmware"
++       default 0x40000
++
 +config SYS_LS_PPA_FW_ADDR
 +       hex "PPA Firmware Addr"
 +       default 0x40400000
@@ -128,6 +132,31 @@ index 0000000000..32f277fa19
 +config SYS_PFE_HW_ADDR
 +       hex "PFE Ethernet Addr"
 +       default 0x40040000
++
++endif
++
++if FSL_PFE
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++       def_bool y
++       select PHYLIB
++       imply PHY_TI_DP83867
++
++config DDR_PFE_PHYS_BASEADDR
++       hex "PFE DDR physical base address"
++       default 0x03800000
++
++config DDR_PFE_BASEADDR
++       hex "PFE DDR base address"
++       default 0x83800000
++
++config PFE_EMAC1_PHY_ADDR
++       hex "PFE DDR base address"
++       default 0x2
++
++config PFE_EMAC2_PHY_ADDR
++       hex "PFE DDR base address"
++       default 0x1
 +
 +endif
 diff --git a/board/freescale/ls1012a-nano/MAINTAINERS b/board/freescale/ls1012a-nano/MAINTAINERS
@@ -171,10 +200,10 @@ index 0000000000..3c04d84ada
 +
 diff --git a/board/freescale/ls1012a-nano/eth.c b/board/freescale/ls1012a-nano/eth.c
 new file mode 100644
-index 0000000000..4932d8e2f6
+index 0000000000..aa4bd15725
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/eth.c
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,123 @@
 +/*
 + * Copyright 2015-2016 Freescale Semiconductor, Inc.
 + * Copyright 2017 NXP
@@ -198,6 +227,7 @@ index 0000000000..4932d8e2f6
 +#include <net/pfe_eth/pfe_eth.h>
 +#include <dm/platform_data/pfe_dm_eth.h>
 +#include <i2c.h>
++#include <spi_flash.h>
 +
 +#define DEFAULT_PFE_MDIO0_NAME "PFE_MDIO0"
 +#define DEFAULT_PFE_MDIO1_NAME "PFE_MDIO1"
@@ -209,7 +239,7 @@ index 0000000000..4932d8e2f6
 +	struct mii_dev *bus;
 +	struct pfe_mdio_info mac_mdio_info;
 +	struct pfe_eth_dev *priv = dev_get_priv(dev);
-+	char *p;
++	struct spi_flash *spi;
 +
 +	if (! init_done) {
 +		init_pfe_scfg_dcfg_regs();
@@ -246,13 +276,19 @@ index 0000000000..4932d8e2f6
 +		pfe_set_phy_address_mode(1, CONFIG_PFE_EMAC2_PHY_ADDR,
 +				     PHY_INTERFACE_MODE_RGMII_TXID);
 +
-+	p = CONFIG_SYS_PFE_HW_ADDR;
++	spi = spi_flash_probe(CONFIG_ENV_SPI_BUS,
++			      CONFIG_ENV_SPI_CS,
++			      CONFIG_ENV_SPI_MAX_HZ, CONFIG_ENV_SPI_MODE);
 +
-+	if (p[0] != 0xff)
-+		eth_env_set_enetaddr("ethaddr", p);
++	if (spi != NULL) {
++		uint8_t ethaddr[12] = { 0x00 };
 +
-+	if (p[6] != 0xff)
-+		eth_env_set_enetaddr("eth1addr", p + 6);
++		if (spi_flash_read(spi, CONFIG_SYS_PFE_HW_ADDR, 12, ethaddr) == 0) {
++			eth_env_set_enetaddr("ethaddr", ethaddr);
++			eth_env_set_enetaddr("eth1addr", ethaddr + 6);
++		} else
++			printf("Failed to read ethaddr from spi flash\n");
++	}
 +
 +#endif
 +	return 0;
@@ -282,21 +318,21 @@ index 0000000000..4932d8e2f6
 +	},
 +};
 +
-+U_BOOT_DEVICE(ls1012a_pfe0) = {
++U_BOOT_DRVINFO(ls1012a_pfe0) = {
 +	.name = "pfe_eth",
-+	.platdata = &pfe_pdata0,
++	.plat = &pfe_pdata0,
 +};
 +
-+U_BOOT_DEVICE(ls1012a_pfe1) = {
++U_BOOT_DRVINFO(ls1012a_pfe1) = {
 +	.name = "pfe_eth",
-+	.platdata = &pfe_pdata1,
++	.plat = &pfe_pdata1,
 +};
 diff --git a/board/freescale/ls1012a-nano/ls1012anano.c b/board/freescale/ls1012a-nano/ls1012anano.c
 new file mode 100644
-index 0000000000..5f2010788e
+index 0000000000..1fe329b906
 --- /dev/null
 +++ b/board/freescale/ls1012a-nano/ls1012anano.c
-@@ -0,0 +1,185 @@
+@@ -0,0 +1,186 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + * Copyright 2018 Telco-Tech GmbH
@@ -306,6 +342,7 @@ index 0000000000..5f2010788e
 +
 +#include <common.h>
 +#include <i2c.h>
++#include <asm/global_data.h>
 +#include <asm/io.h>
 +#include <asm/arch/clock.h>
 +#include <asm/arch/fsl_serdes.h>
@@ -322,6 +359,8 @@ index 0000000000..5f2010788e
 +#include <fsl_mmdc.h>
 +#include <netdev.h>
 +#include <fsl_sec.h>
++#include <fdt_support.h>
++#include <env.h>
 +
 +DECLARE_GLOBAL_DATA_PTR;
 +
@@ -441,12 +480,12 @@ index 0000000000..5f2010788e
 +/**
 + * setup config for phy & phy or phy & switch
 + */
-+static int ft_ethernet_fixup(void *fdt) {
++int ft_ethernet_fixup(void *fdt) {
 +	const char *mode[] = { "rgmii-txid", "sgmii" };
 +	const char *phy[] = { "/pfe@4000000/mdio@0/ethernet-phy@1", "/soc/i2c@2180000/ksz9897@5f/mdio@0/ethernet-phy@6" };
 +	uint32_t ksz;
 +	int offs;
-+	char *p;
++	uint8_t enetaddr[6];
 +
 +	i2c_set_bus_num(0);
 +
@@ -460,19 +499,17 @@ index 0000000000..5f2010788e
 +
 +	set_phy_handle(fdt, phy[ksz]);
 +
-+	/* set ethernet address from qspi to device tree */
-+	p = CONFIG_SYS_PFE_HW_ADDR;
++	/* set ethernet address from env to device tree */
++	if (eth_env_get_enetaddr("ethaddr", enetaddr) == 0)
++		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@0", "local-mac-address", enetaddr, 6, 1);
 +
-+	if (p[0] != 0xff)
-+		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@0", "local-mac-address", p, 6, 1);
-+
-+	if (p[6] != 0xff)
-+		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@1", "local-mac-address", p + 6, 6, 1);
++	if (eth_env_get_enetaddr("eth1addr", enetaddr) == 0)
++		fdt_find_and_setprop(fdt, "/pfe@4000000/ethernet@1", "local-mac-address", enetaddr, 6, 1);
 +
 +	return 0;
 +}
 +
-+int ft_board_setup(void *blob, bd_t *bd)
++int ft_board_setup(void *blob, struct bd_info *bd)
 +{
 +	arch_fixup_fdt(blob);
 +
@@ -484,13 +521,19 @@ index 0000000000..5f2010788e
 +}
 diff --git a/configs/ls1012anano_qspi_defconfig b/configs/ls1012anano_qspi_defconfig
 new file mode 100644
-index 0000000000..7ea59fe575
+index 0000000000..6e10271f5e
 --- /dev/null
 +++ b/configs/ls1012anano_qspi_defconfig
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,72 @@
 +CONFIG_ARM=y
 +CONFIG_TARGET_LS1012ANANO=y
 +CONFIG_SYS_TEXT_BASE=0x40100000
++CONFIG_NR_DRAM_BANKS=2
++CONFIG_SYS_MEMTEST_START=0x80000000
++CONFIG_SYS_MEMTEST_END=0x9fffffff
++CONFIG_ENV_SIZE=0x2000
++CONFIG_ENV_OFFSET=0x300000
++CONFIG_ENV_SECT_SIZE=0x40000
 +# CONFIG_FSL_LS_PPA is not set
 +CONFIG_QSPI_AHB_INIT=y
 +CONFIG_DEFAULT_DEVICE_TREE="fsl-ls1012a-nano"
@@ -502,7 +545,6 @@ index 0000000000..7ea59fe575
 +CONFIG_SYS_EXTRA_OPTIONS="QSPI_BOOT"
 +CONFIG_QSPI_BOOT=y
 +CONFIG_BOOTDELAY=3
-+CONFIG_ENV_IS_IN_SPI_FLASH=y
 +# CONFIG_DISPLAY_BOARDINFO is not set
 +CONFIG_HUSH_PARSER=y
 +CONFIG_CMD_GREPENV=y
@@ -519,6 +561,15 @@ index 0000000000..7ea59fe575
 +CONFIG_CMD_EXT2=y
 +# CONFIG_CMD_FAT is not set
 +CONFIG_OF_CONTROL=y
++CONFIG_ENV_OVERWRITE=y
++CONFIG_ENV_IS_IN_SPI_FLASH=y
++CONFIG_USE_ENV_SPI_BUS=y
++CONFIG_ENV_SPI_BUS=0
++CONFIG_USE_ENV_SPI_MAX_HZ=y
++CONFIG_ENV_SPI_MAX_HZ=1000000
++CONFIG_USE_ENV_SPI_MODE=y
++CONFIG_ENV_SPI_MODE=0x03
++CONFIG_SYS_RELOC_GD_ENV_ADDR=y
 +CONFIG_NET_RANDOM_ETHADDR=y
 +CONFIG_DM=y
 +CONFIG_BLK=y
@@ -548,10 +599,10 @@ index 0000000000..7ea59fe575
 +CONFIG_EFI_LOADER=y
 diff --git a/include/configs/ls1012anano.h b/include/configs/ls1012anano.h
 new file mode 100644
-index 0000000000..ecbef597aa
+index 0000000000..0a821ebe76
 --- /dev/null
 +++ b/include/configs/ls1012anano.h
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,96 @@
 +/*
 + * Copyright 2016 Freescale Semiconductor, Inc.
 + *
@@ -582,13 +633,6 @@ index 0000000000..ecbef597aa
 +#define CONFIG_SYS_FSL_MMC_HAS_CAPBLT_VS33
 +#endif
 +
-+/* PFE Ethernet */
-+#ifdef CONFIG_FSL_PFE
-+#define EMAC1_PHY_ADDR          0x2
-+#define EMAC2_PHY_ADDR          0x1
-+#define CONFIG_PHY_TI
-+#endif
-+
 +/* DDR */
 +#define CONFIG_DIMM_SLOTS_PER_CTLR	1
 +#define CONFIG_CHIP_SELECTS_PER_CTRL	1
@@ -606,7 +650,10 @@ index 0000000000..ecbef597aa
 +#ifndef CONFIG_SPL_BUILD
 +#undef BOOT_TARGET_DEVICES
 +#define BOOT_TARGET_DEVICES(func) \
-+	func(USB, usb, 0)
++	func(MMC, mmc, 0) \
++	func(MMC, mmc, 1) \
++	func(USB, usb, 0) \
++	func(DHCP, dhcp, na)
 +#endif
 +
 +/*
@@ -630,58 +677,24 @@ index 0000000000..ecbef597aa
 +	"kernel_addr_r=0x81000000\0"		\
 +	"fdt_addr_r=0x90000000\0"		\
 +	"load_addr=0xa0000000\0"		\
-+	"kernel_size=0x2800000\0"		\
-+	"kernelheader_size=0x40000\0"		\
 +	"console=ttyS0,115200\0"		\
-+	"dtb_load=0xa0200000\0"			\
++	"fdtfile=ls1012anano.dtb\0"		\
 +	BOOTENV					\
 +	"mmc_installer=echo Trying load installer from sd card..;"	\
 +		   "load mmc 0:2 $load_addr "	\
 +		   "/flex_installer_arm64.itb; "	\
 +		   "pfe stop; " \
-+		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
++		   "bootm $load_addr#conf-freescale_fsl-$board.dtb\0"	\
 +	"dhcp_installer=echo Trying load installer from network..;"	\
 +		   "setenv ethaddr 00:11:22:33:44:55;" \
 +		   "dhcp $load_addr; "	\
 +		   "pfe stop; " \
 +		   "setenv bootargs console=$console; " \
-+		   "bootm $load_addr#conf@fsl-$board.dtb\0"	\
-+	"efi_env=" \
-+		   "mmc dev 1 1; " \
-+		   "mw $dtb_load 62757267 1; " \
-+		   "mmc read $load_addr 0 1; " \
-+		   "mmc rescan; " \
-+		   "if cmp $load_addr $dtb_load 1; " \
-+		      "then env import -t $load_addr; " \
-+		   "fi\0" \
-+	"emmc_bootcmd=" \
-+		   "run efi_env; " \
-+		   "if test -n $grubefi_start; " \
-+		      "then echo Trying load efi bootmgr from boot0 device...;" \
-+		      "mmc dev 1 1; " \
-+		      "mmc read $load_addr $grubefi_start $grubefi_size; " \
-+		      "if test -n $dtb_start; " \
-+		         "then mmc read $dtb_load $dtb_start $dtb_size; " \
-+		      "fi; " \
-+		      "pfe stop; " \
-+		      "mmc dev 1;" \
-+		      "set filesize $grubefi_size;" \
-+		      "bootefi $load_addr $dtb_load; " \
-+		   "elif load mmc 1:1 $load_addr /boot/itbImage; then " \
-+		      "echo Trying load from emmc..;"	\
-+		      "setenv bootargs console=$console root=/dev/mmcblk1p1 rootwait; " \
-+		      "pfe stop; " \
-+		      "bootm $load_addr; fi\0" \
-+		   "fi\0" \
-+	"mmc_bootcmd=echo Trying load from sd card..;"	\
-+		   "if load mmc 0:1 $load_addr /itbImage; then " \
-+		   "setenv bootargs console=$console root=/dev/mmcblk0p1 rootwait; " \
-+		   "pfe stop; " \
-+		   "bootm $load_addr; fi\0"
++		   "bootm $load_addr#conf-freescale_fsl-$board.dtb\0"	\
 +
 +#undef CONFIG_BOOTCOMMAND
 +#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_SD_BOOT_QSPI)
-+#define CONFIG_BOOTCOMMAND "run emmc_bootcmd; run mmc_bootcmd; run dhcp_installer; run mmc_installer;" \
++#define CONFIG_BOOTCOMMAND "run bootcmd_mmc1; run bootcmd_mmc0; run dhcp_installer; run mmc_installer;" \
 +			   "env exists secureboot && esbc_halt;"
 +#endif
 +

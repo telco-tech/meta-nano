@@ -17,6 +17,7 @@ PACKAGE_INSTALL = "\
 	util-linux-sfdisk \
 	e2fsprogs-mke2fs \
 	e2fsprogs-tune2fs \
+	u-boot-tools \
 "
 
 inherit core-image

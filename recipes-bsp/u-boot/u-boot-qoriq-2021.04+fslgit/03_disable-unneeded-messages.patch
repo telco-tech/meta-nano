@@ -1,8 +1,8 @@
 diff --git a/disk/part_dos.c b/disk/part_dos.c
-index 8ddc13b50c..08f1a578ab 100644
+index 60addc6e00..5a39013514 100644
 --- a/disk/part_dos.c
 +++ b/disk/part_dos.c
-@@ -217,7 +217,7 @@ static int part_get_info_extended(struct blk_desc *dev_desc,
+@@ -227,7 +227,7 @@ static int part_get_info_extended(struct blk_desc *dev_desc,
  	}
  	if (buffer[DOS_PART_MAGIC_OFFSET] != 0x55 ||
  		buffer[DOS_PART_MAGIC_OFFSET + 1] != 0xaa) {

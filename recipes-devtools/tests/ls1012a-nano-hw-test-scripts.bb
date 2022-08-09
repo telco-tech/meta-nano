@@ -18,4 +18,4 @@ do_install() {
 	install -m 0755 ${WORKDIR}/button.sh ${TDIR}/
 }
 
-FILES_${PN} += "*"
+FILES:${PN} += "*"

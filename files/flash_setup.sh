@@ -88,7 +88,7 @@ cleanup() {
 
 if [ -z "${IP_SERVER}" ]; then
 
-	IP_SERVER=$(ip addr show eth0 | sed -n '/inet /{s/.*inet \([0-9.]*\).*/\1/;p}')
+	IP_SERVER=$(ip addr show eth0 | sed -n '/inet /{s/.*inet \([0-9.]*\).*/\1/;p}' | head -n1)
 
 	if [ -z "${IP_SERVER}" ]; then
 
@@ -117,7 +117,7 @@ fi
 	&& IP_NETMASK=255.255.255.0
 
 [ -z "${IMAGE_INSTALL}" ] \
-	&& IMAGE_INSTALL=itbImage-ls1012anano-install-ls1012anano.bin
+	&& IMAGE_INSTALL=fitImage-ls1012anano-install-ls1012anano-ls1012anano
 
 [ -z "${IMAGE_BASE}" ] \
 	&& IMAGE_BASE=nano-image-ls1012anano.tar.gz
@@ -141,6 +141,10 @@ if [ -z "${DRUN}" -o "${DRUN}" = "Y" -o "${DRUN}" = "y" ]; then
 
 	if [ -z "${PID_ATFTPD}" ]; then
 		for I in $(find /proc -maxdepth 1 -type d -name "[0-9]*"); do
+
+			[ ! -d ${I} ] \
+				&& continue
+
 			if [ $(grep -c "^atftpd" ${I}/cmdline) -gt 0 ]; then
 				PID_ATFTPD=${I##*/}
 				break

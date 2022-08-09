@@ -1,19 +1,19 @@
 diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
-index 37fceaf9fa10..1f9945a61985 100644
+index c716074fdef0..c328bae6b10c 100644
 --- a/drivers/net/phy/dp83867.c
 +++ b/drivers/net/phy/dp83867.c
-@@ -21,6 +21,7 @@
- #define MII_DP83867_PHYCTRL	0x10
+@@ -24,6 +24,7 @@
+ #define MII_DP83867_PHYSTS	0x11
  #define MII_DP83867_MICR	0x12
  #define MII_DP83867_ISR		0x13
 +#define MII_DP83867_LEDCR1	0x18
- #define DP83867_CTRL		0x1f
+ #define DP83867_CFG2		0x14
  #define DP83867_CFG3		0x1e
- 
-@@ -108,6 +109,11 @@ struct dp83867_private {
- 	u32 rx_id_delay;
+ #define DP83867_CTRL		0x1f
+@@ -159,6 +160,11 @@ struct dp83867_private {
  	u32 tx_id_delay;
- 	u32 fifo_depth;
+ 	u32 tx_fifo_depth;
+ 	u32 rx_fifo_depth;
 +	uint8_t led_0_source;
 +	uint8_t led_1_source;
 +	uint8_t led_2_source;
@@ -22,36 +22,36 @@ index 37fceaf9fa10..1f9945a61985 100644
  	int io_impedance;
  	int port_mirroring;
  	bool rxctrl_strap_quirk;
-@@ -205,6 +211,28 @@ static int dp83867_of_init(struct phy_device *phydev)
+@@ -527,6 +533,28 @@ static int dp83867_of_init(struct phy_device *phydev)
  	dp83867->sgmii_ref_clk_en = of_property_read_bool(of_node,
- 					"ti,sgmii-ref-clock-output-enable");
+ 							  "ti,sgmii-ref-clock-output-enable");
  
 +	dp83867->led_mask = ~0;
 +
 +	ret = of_property_read_u8(of_node, "ti,led-0-source",
-+				   &dp83867->led_0_source);
++					&dp83867->led_0_source);
 +	if (ret)
 +		dp83867->led_mask &= ~0x000f;
 +
 +	ret = of_property_read_u8(of_node, "ti,led-1-source",
-+				   &dp83867->led_1_source);
++					&dp83867->led_1_source);
 +	if (ret)
 +		dp83867->led_mask &= ~0x00f0;
 +
 +	ret = of_property_read_u8(of_node, "ti,led-2-source",
-+				   &dp83867->led_2_source);
++					&dp83867->led_2_source);
 +	if (ret)
 +		dp83867->led_mask &= ~0x0f00;
 +
 +	ret = of_property_read_u8(of_node, "ti,led-gpio-source",
-+				   &dp83867->led_gpio_source);
++					&dp83867->led_gpio_source);
 +	if (ret)
 +		dp83867->led_mask &= ~0xf000;
 +
- 	/* Existing behavior was to use default pin strapping delay in rgmii
- 	 * mode, but rgmii should have meant no delay.  Warn existing users.
- 	 */
-@@ -436,6 +464,16 @@ static int dp83867_config_init(struct phy_device *phydev)
+ 	dp83867->rx_id_delay = DP83867_RGMII_RX_CLK_DELAY_INV;
+ 	ret = of_property_read_u32(of_node, "ti,rx-internal-delay",
+ 				   &dp83867->rx_id_delay);
+@@ -785,6 +813,16 @@ static int dp83867_config_init(struct phy_device *phydev)
  			       mask, val);
  	}
  

@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += "\
 	file://ls1012a.rcwi \
@@ -8,7 +8,7 @@ SRC_URI += "\
 	file://byte_swap.tcl \
 "
 
-do_configure_prepend() {
+do_configure:prepend() {
 	mkdir -p ${S}/ls1012anano/rcw
 
 	cp ${WORKDIR}/*.rcwi ${S}/ls1012anano/
@@ -22,7 +22,7 @@ do_configure_prepend() {
 	sed -i '/^BOARDS/ {s/ls1012anano//;s/= /= ls1012anano /}' ${S}/Makefile
 }
 
-do_compile_append() {
+do_compile:append() {
 	cd ls1012anano/rcw
 
 	for I in $(find -name "*.bin"); do

@@ -1,5 +1,5 @@
 
-PACKAGE_INSTALL_append = "\
+PACKAGE_INSTALL:append = "\
 	packagegroup-nano \
 "
 

@@ -1,21 +1,21 @@
 diff --git a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
-index 6f5988c81882..5d7cf556387d 100644
+index 278bdc33aad1..7415d7af3c8a 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/i2c-ksz9897.c
-@@ -53,6 +53,8 @@
+@@ -56,6 +56,8 @@
  #include <linux/i2c.h>
  #include <linux/debugfs.h>
  #include <linux/seq_file.h>
 +#include <linux/of.h>
 +#include <linux/of_mdio.h>
  
+ #undef MAX_REQUEST_SIZE
  #define MAX_REQUEST_SIZE		80
- 
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index fd85cfcd8e42..9d3b4dba865b 100644
+index 0632f64e989c..6a1b1b40f80b 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -17465,6 +17465,8 @@ static int ksz_mii_init(struct sw_priv *ks)
+@@ -17714,6 +17714,8 @@ static int ksz_mii_init(struct sw_priv *ks)
  	struct platform_device *pdev;
  	struct mii_bus *bus;
  	struct phy_device *phydev;
@@ -24,9 +24,9 @@ index fd85cfcd8e42..9d3b4dba865b 100644
  	int err;
  	int i;
  
-@@ -17501,7 +17503,15 @@ static int ksz_mii_init(struct sw_priv *ks)
+@@ -17750,7 +17752,15 @@ static int ksz_mii_init(struct sw_priv *ks)
  	for (i = 0; i < PHY_MAX_ADDR; i++)
- 		bus->irq[i] = ks->irq;
+ 		bus->irq[i] = -1;
  
 -	err = mdiobus_register(bus);
 +#ifdef CONFIG_OF
@@ -41,19 +41,15 @@ index fd85cfcd8e42..9d3b4dba865b 100644
  	if (err < 0)
  		goto mii_init_free_mii_bus;
  
-@@ -18299,9 +18309,11 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
- 			}
- 		}
- 	}
-+
- 	if (ks->dev->of_node) {
+@@ -18547,6 +18557,7 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
+ 	if (ks->of_dev && ks->of_dev->of_node) {
  		int score;
  		char name[80];
 +		uint32_t *ofv;
  
- 		if (!of_modalias_node(ks->dev->of_node, name, sizeof(name)))
+ 		if (!of_modalias_node(ks->of_dev->of_node, name, sizeof(name)))
  			dbg_msg(" compatible: %s"NL, name);
-@@ -18311,6 +18323,9 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
+@@ -18556,6 +18567,9 @@ dbg_msg("avb=%d  rr=%d  giga=%d"NL,
  			sku = KSZ8565_SKU;
  			sw->chip_id = KSZ8565_SW_CHIP;
  		}

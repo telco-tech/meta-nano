@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-index 9a472114f0e5..b4e4971d140d 100644
+index 6a1b1b40f80b..f4dd1a9f3ffc 100644
 --- a/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
 +++ b/drivers/net/ethernet/micrel/ksz9897/ksz_sw_9897.c
-@@ -7734,6 +7734,21 @@ dbg_msg("CFG: %04x"NL, cfg);
+@@ -7729,6 +7729,21 @@ dbg_msg("CFG: %04x"NL, cfg);
  			break;
  		}
  	}

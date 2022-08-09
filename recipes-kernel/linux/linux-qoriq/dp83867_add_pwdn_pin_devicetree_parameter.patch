@@ -1,8 +1,8 @@
 diff --git a/drivers/net/phy/dp83867.c b/drivers/net/phy/dp83867.c
-index 1f9945a61985..1686ca102de5 100644
+index 36ba23faa575..c7a4b4083898 100644
 --- a/drivers/net/phy/dp83867.c
 +++ b/drivers/net/phy/dp83867.c
-@@ -118,6 +118,7 @@ struct dp83867_private {
+@@ -169,6 +169,7 @@ struct dp83867_private {
  	int port_mirroring;
  	bool rxctrl_strap_quirk;
  	bool set_clk_output;
@@ -10,22 +10,21 @@ index 1f9945a61985..1686ca102de5 100644
  	u32 clk_output_sel;
  	bool sgmii_ref_clk_en;
  };
-@@ -303,6 +304,9 @@ static int dp83867_of_init(struct phy_device *phydev)
- 			   dp83867->fifo_depth);
+@@ -608,6 +609,8 @@ static int dp83867_of_init(struct phy_device *phydev)
  		return -EINVAL;
  	}
-+
+ 
 +	dp83867->pwdn_int = of_property_read_bool(of_node, "ti,pwdn_int");
 +
  	return 0;
  }
  #else
-@@ -439,7 +443,7 @@ static int dp83867_config_init(struct phy_device *phydev)
- 	}
+@@ -788,7 +791,7 @@ static int dp83867_config_init(struct phy_device *phydev)
  
+ 	val = phy_read(phydev, DP83867_CFG3);
  	/* Enable Interrupt output INT_OE in CFG3 register */
--	if (phy_interrupt_is_valid(phydev)) {
-+	if (phy_interrupt_is_valid(phydev) || dp83867->pwdn_int) {
- 		val = phy_read(phydev, DP83867_CFG3);
- 		val |= BIT(7);
- 		phy_write(phydev, DP83867_CFG3, val);
+-	if (phy_interrupt_is_valid(phydev))
++	if (phy_interrupt_is_valid(phydev) || dp83867->pwdn_int)
+ 		val |= DP83867_CFG3_INT_OE;
+ 
+ 	val |= DP83867_CFG3_ROBUST_AUTO_MDIX;

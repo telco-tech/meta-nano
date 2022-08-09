@@ -60,7 +60,7 @@ while : ; do
 		break
 	fi
 
-	echo "Install Filesystem..."
+	echo "Installing the Filesystem..."
 
 	tftp -g -r ${BOOTFILE} -l - ${SIADDR} | tar -C /mnt -xzf -
 
@@ -69,10 +69,23 @@ while : ; do
 		break
 	fi
 
-	tftp -g -r itbImage -l /mnt/boot/itbImage ${SIADDR}
+	tftp -g -r fitImage -l /mnt/boot/fitImage ${SIADDR}
 
 	if [ ${?} -ne 0 ]; then
-		echo "Failed to get the kernel image (itbImage)"
+		echo "Failed to get the kernel image (fitImage)"
+		break
+	fi
+
+	echo 'if load ${devtype} ${devnum}:${distro_bootpart} ${load_addr} /boot/fitImage; then' \
+	     '    setenv bootargs console=${console} root=/dev/mmcblk1p1 rootwait;' \
+	     '    pfe stop;' \
+	     '    bootm $load_addr;' \
+	     'fi' > /tmp/boot.scr
+
+	mkimage -A arm64 -O linux -T script -C none -n boot.scr -d /tmp/boot.scr /mnt/boot/boot.scr.uimg
+
+	if [ ${?} -ne 0 ]; then
+		echo "Failed to create the boot.scr.uimg."
 		break
 	fi
 

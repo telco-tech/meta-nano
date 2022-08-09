@@ -1,8 +1,8 @@
 diff --git a/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi b/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
-index 0ca51cbd1976..59748f654a92 100644
+index aa5b2e807ab8..93d56fd5921d 100644
 --- a/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
 +++ b/arch/arm64/boot/dts/freescale/fsl-ls1012a.dtsi
-@@ -452,6 +452,8 @@
+@@ -467,6 +467,8 @@
  			snps,dis_rxdet_inp3_quirk;
  			snps,incr-burst-type-adjustment = <1>, <4>, <8>, <16>;
  			snps,host-vbus-glitches;

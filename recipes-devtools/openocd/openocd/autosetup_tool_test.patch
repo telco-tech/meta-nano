@@ -1,0 +1,14 @@
+diff --git a/jimtcl/autosetup/cc.tcl b/jimtcl/autosetup/cc.tcl
+index 585d259..ad7b1e0 100644
+--- a/jimtcl/autosetup/cc.tcl
++++ b/jimtcl/autosetup/cc.tcl
+@@ -264,7 +264,8 @@ proc cc-check-tools {args} {
+ 	foreach tool $args {
+ 		set TOOL [string toupper $tool]
+ 		set exe [get-env $TOOL [get-define cross]$tool]
+-		if {[find-executable {*}$exe]} {
++		regsub {\ .*} $exe "" exetool
++		if {[find-executable {*}$exetool]} {
+ 			define $TOOL $exe
+ 			continue
+ 		}

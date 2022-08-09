@@ -1,5 +1,5 @@
 diff --git a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
-index fd2b0e353d8b..4eadc001bf96 100644
+index efef6a6ab381..e1331a865585 100644
 --- a/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 +++ b/drivers/staging/fsl_ppfe/pfe_ls1012a_platform.c
 @@ -22,12 +22,12 @@ extern bool pfe_use_old_dts_phy;
@@ -15,31 +15,15 @@ index fd2b0e353d8b..4eadc001bf96 100644
 +	int port;
  	const u32 *addr;
  	const u8 *mac_addr;
- 
-@@ -207,14 +207,20 @@ static int pfe_platform_probe(struct platform_device *pdev)
- 
+ 	int err;
+@@ -212,8 +212,8 @@ static int pfe_platform_probe(struct platform_device *pdev)
  	pfe_platform_data.ls1012a_mdio_pdata[0].phy_mask = 0xffffffff;
  
--	for (ii = 0; ii < interface_count; ii++) {
-+	for (ii = 0; ii < interface_count;) {
- 		gem = of_get_next_child(np, gem);
--		if (gem)
+ 	while ((gem = of_get_next_child(np, gem))) {
+-		if (of_find_property(gem, "reg", &size)) {
 -			pfe_get_gemac_if_properties(gem, ii,
--						    &pfe_platform_data);
--		else
--			pr_err("Unable to find interface %d\n", ii);
- 
-+		if (gem) {
-+			if (!of_device_is_compatible(gem, "fsl,pfe-gemac-port"))
-+				continue;
-+
-+			pfe_get_gemac_if_properties(gem, &pfe_platform_data);
-+
-+			ii++;
-+		} else {
-+			pr_err("Unable to find interface %d\n", ii);
-+			break;
-+		}
- 	}
- 
- 	pfe->dev = &pdev->dev;
++		if (of_device_is_compatible(gem, "fsl,pfe-gemac-port")) {
++			pfe_get_gemac_if_properties(gem,
+ 						&pfe_platform_data);
+ 			ii++;
+ 		}
